@@ -1,0 +1,46 @@
+name: Monthly Offers Refresh
+
+# Runs on the 1st of every month (06:30 IST = 01:00 UTC). Also manually triggerable.
+on:
+  schedule:
+    - cron: "0 1 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # (a) Bump the visible month label on verified offers (safe, always runs).
+      - name: Bump month label
+        run: node scripts/offers/update-offers.mjs
+
+      # (b) OPTIONAL, best-effort scrape → drafts only (verified:false). Disabled by default.
+      - name: Run offer adapters (drafts only)
+        if: ${{ vars.ENABLE_OFFER_SCRAPER == 'true' }}
+        env:
+          ENABLE_OFFER_SCRAPER: "true"
+        run: npx --yes tsx scripts/offers/run-adapters.ts
+
+      # (c) Open a PR with proposed changes for HUMAN REVIEW — never auto-publishes drafts.
+      - name: Create review PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(offers): monthly refresh — review indicative figures"
+          branch: offers/monthly-refresh
+          title: "Monthly offers refresh — review indicative figures"
+          body-path: data/offers/_changes.md
+          labels: offers, needs-review
+          add-paths: |
+            data/offers/*.json
+            data/offers/_meta.json

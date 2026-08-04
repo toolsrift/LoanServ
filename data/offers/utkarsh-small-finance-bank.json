@@ -1,0 +1,38 @@
+[
+  {
+    "lender": "Utkarsh Small Finance Bank",
+    "lenderSlug": "utkarsh-small-finance-bank",
+    "product": "Personal Loan",
+    "productSlug": "personal",
+    "roiFrom": 10.89,
+    "roiTo": 24,
+    "processingFee": "Up to 2% + GST",
+    "tenure": "12–72 months",
+    "preclosureCharges": "2–4% of outstanding",
+    "foreclosureCharges": "Up to 4% + GST (after lock-in)",
+    "insuranceNotes": "Optional loan-protection insurance may be offered; not mandatory.",
+    "specialOffer": "Festive processing-fee waiver (indicative) for select Utkarsh Small Finance Bank customers",
+    "sourceUrl": "https://www.utkarshsmallfinancebank.com",
+    "month": "July 2026",
+    "lastUpdated": "2026-07-04",
+    "verified": false
+  },
+  {
+    "lender": "Utkarsh Small Finance Bank",
+    "lenderSlug": "utkarsh-small-finance-bank",
+    "product": "Business Loan",
+    "productSlug": "business",
+    "roiFrom": 14.34,
+    "roiTo": 26,
+    "processingFee": "Up to 2% + GST",
+    "tenure": "12–60 months",
+    "preclosureCharges": "2–4% of outstanding",
+    "foreclosureCharges": "Up to 4% + GST (after lock-in)",
+    "insuranceNotes": "Optional loan-protection insurance may be offered; not mandatory.",
+    "specialOffer": "",
+    "sourceUrl": "https://www.utkarshsmallfinancebank.com",
+    "month": "July 2026",
+    "lastUpdated": "2026-07-04",
+    "verified": false
+  }
+]

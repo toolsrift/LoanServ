@@ -1,0 +1,38 @@
+[
+  {
+    "lender": "Muthoot Finance",
+    "lenderSlug": "muthoot-finance",
+    "product": "Personal Loan",
+    "productSlug": "personal",
+    "roiFrom": 10.61,
+    "roiTo": 24,
+    "processingFee": "Up to 2% + GST",
+    "tenure": "12–72 months",
+    "preclosureCharges": "2–4% of outstanding",
+    "foreclosureCharges": "Up to 4% + GST (after lock-in)",
+    "insuranceNotes": "Optional loan-protection insurance may be offered; not mandatory.",
+    "specialOffer": "Festive processing-fee waiver (indicative) for select Muthoot Finance customers",
+    "sourceUrl": "https://www.muthootfinance.com",
+    "month": "July 2026",
+    "lastUpdated": "2026-07-04",
+    "verified": false
+  },
+  {
+    "lender": "Muthoot Finance",
+    "lenderSlug": "muthoot-finance",
+    "product": "Business Loan",
+    "productSlug": "business",
+    "roiFrom": 14.56,
+    "roiTo": 26,
+    "processingFee": "Up to 2% + GST",
+    "tenure": "12–60 months",
+    "preclosureCharges": "2–4% of outstanding",
+    "foreclosureCharges": "Up to 4% + GST (after lock-in)",
+    "insuranceNotes": "Optional loan-protection insurance may be offered; not mandatory.",
+    "specialOffer": "",
+    "sourceUrl": "https://www.muthootfinance.com",
+    "month": "July 2026",
+    "lastUpdated": "2026-07-04",
+    "verified": false
+  }
+]
