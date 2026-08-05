@@ -89,7 +89,7 @@ export function Hero() {
 
           <div className="relative animate-fade-up [animation-delay:120ms]">
             {/* floating accent pills for depth (desktop only) */}
-            <div className="absolute -left-4 top-6 z-10 hidden animate-fade-up items-center gap-2 rounded-2xl border border-sand bg-white px-3.5 py-2 shadow-lift [animation-delay:360ms] lg:flex">
+            <div className="absolute -left-4 -top-8 z-10 hidden animate-fade-up items-center gap-2 rounded-2xl border border-sand bg-white px-3.5 py-2 shadow-lift [animation-delay:360ms] lg:flex">
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-mint/15 text-mint">
                 <CheckCircle2 className="h-4 w-4" />
               </span>
@@ -98,7 +98,7 @@ export function Hero() {
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">approved</p>
               </div>
             </div>
-            <div className="absolute -right-3 bottom-10 z-10 hidden animate-fade-up items-center gap-2 rounded-2xl border border-sand bg-white px-3.5 py-2 shadow-lift [animation-delay:480ms] lg:flex">
+            <div className="absolute -right-3 -bottom-8 z-10 hidden animate-fade-up items-center gap-2 rounded-2xl border border-sand bg-white px-3.5 py-2 shadow-lift [animation-delay:480ms] lg:flex">
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-saffron/15 text-[#8a5a04]">
                 <TrendingDown className="h-4 w-4" />
               </span>

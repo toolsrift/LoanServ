@@ -79,9 +79,10 @@ export function Header() {
 
         {/* Desktop nav */}
         <ul className="hidden items-center gap-1 lg:flex" onMouseLeave={leave}>
-          {megaMenus.map((menu) => {
+          {megaMenus.map((menu, index) => {
             const isOpen = openMenu === menu.label;
             const panelId = `mega-menu-${menu.label.replace(/\s+/g, "-").toLowerCase()}`;
+            const alignRight = index >= megaMenus.length - 2;
             return (
             <li
               key={menu.label}
@@ -122,7 +123,7 @@ export function Header() {
               {isOpen && (
                 <div
                   id={panelId}
-                  className="absolute left-0 top-full pt-3"
+                  className={cn("absolute top-full pt-3", alignRight ? "right-0" : "left-0")}
                   onMouseEnter={() => enter(menu.label)}
                 >
                   <div className="w-[min(90vw,760px)] rounded-2xl border border-sand bg-white p-5 shadow-lift">
