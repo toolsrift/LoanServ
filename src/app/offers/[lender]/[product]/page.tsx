@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, RefreshCw, ShieldCheck, Landmark } from "lucide-react";
-import { Container, Card } from "@/components/ui/primitives";
+import { Container, Card, Badge } from "@/components/ui/primitives";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { ApplyButton } from "@/components/apply/ApplyButton";
 import { PageHero } from "@/components/sections/PageHero";
@@ -78,12 +78,23 @@ export default async function OfferDetailPage({
         }
         trust={[
           { icon: RefreshCw, label: `Updated ${offer.lastUpdated || month}` },
-          { icon: ShieldCheck, label: "Confirm with lender" },
+          { icon: ShieldCheck, label: offer.verified ? "Confirm with lender" : "Unverified — confirm with lender" },
         ]}
       />
 
       <section className="pb-10">
         <Container className="max-w-3xl">
+          {!offer.verified && (
+            <div className="mb-6 rounded-2xl border border-saffron/30 bg-saffron/10 p-4 text-sm text-[#8a5a04]">
+              <Badge tone="saffron" className="mb-2">
+                Unverified
+              </Badge>
+              <p>
+                This figure has not yet been manually confirmed against {offer.lender}&apos;s own page — treat it as
+                an estimate only and confirm the current rate directly with the lender or our team before applying.
+              </p>
+            </div>
+          )}
           {offer.specialOffer && (
             <div className="mb-6 rounded-2xl border border-saffron/30 bg-saffron/10 p-4 text-sm text-[#8a5a04]">
               <strong>Special offer:</strong> {offer.specialOffer}

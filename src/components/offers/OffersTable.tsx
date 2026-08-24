@@ -50,6 +50,15 @@ export function OffersTable({ offers, month }: { offers: Offer[]; month: string 
                   <Link href={`/offers/${o.lenderSlug}`} className="hover:text-evergreen hover:underline">
                     {o.lender}
                   </Link>
+                  {!o.verified && (
+                    <Badge
+                      tone="saffron"
+                      className="ml-2 align-middle"
+                      title="This figure has not yet been manually confirmed against the lender's page"
+                    >
+                      Unverified
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate">
                   <Link href={`/offers/${o.lenderSlug}/${o.productSlug}`} className="hover:text-evergreen hover:underline">
@@ -81,6 +90,14 @@ export function OffersTable({ offers, month }: { offers: Offer[]; month: string 
       <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge tone="sand">Indicative</Badge>
         Rates & fees are indicative, last updated {month}. Confirm current terms with the lender before applying.
+        {sorted.some((o) => !o.verified) && (
+          <>
+            {" "}
+            <Badge tone="saffron">Unverified</Badge>
+            rows have not yet been manually confirmed against the lender&apos;s own page — treat them as an estimate
+            only.
+          </>
+        )}
       </p>
     </div>
   );

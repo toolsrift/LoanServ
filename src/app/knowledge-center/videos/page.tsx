@@ -70,7 +70,7 @@ export default function VideosPage() {
                 <div className="relative grid aspect-video place-items-center bg-gradient-to-br from-evergreen/10 via-mint/10 to-saffron/10">
                   <PlayCircle className="h-12 w-12 text-evergreen/60" aria-hidden />
                   <span className="absolute left-3 top-3">
-                    <Badge tone="sand">TODO: video</Badge>
+                    <Badge tone="sand">Coming soon</Badge>
                   </span>
                 </div>
                 <div className="flex flex-1 flex-col p-6">
