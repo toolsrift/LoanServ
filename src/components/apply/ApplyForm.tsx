@@ -385,7 +385,8 @@ export function ApplyForm({
             className="mt-0.5"
           />
           <span className="text-sm text-slate">
-            I agree to be contacted by LoanServ regarding my loan requirement and accept the{" "}
+            I agree to be contacted by LoanServ regarding my loan requirement — by phone, WhatsApp
+            or email, including an automated AI voice callback — and accept the{" "}
             <Link href="/legal/privacy-policy" className="text-evergreen underline" target="_blank">
               Privacy Policy
             </Link>

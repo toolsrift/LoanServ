@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { applySchema } from "@/lib/apply-schema";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { requestCallback } from "@/lib/voice-agent";
 import { site } from "@/lib/site";
 
 export const runtime = "nodejs";
 
 // Version of the consent text/flow the user agreed to. Bump when it changes.
-const CONSENT_VERSION = "1.0";
+// 2.0 — added explicit consent to an automated (AI) voice callback, which is a
+// separate channel from email/WhatsApp under TRAI rules.
+const CONSENT_VERSION = "2.0";
 
 export async function POST(req: Request) {
   const ip =
@@ -68,7 +71,7 @@ export async function POST(req: Request) {
       ${d.businessVintage ? `<tr><td><b>Vintage</b></td><td>${esc(d.businessVintage)} yrs</td></tr>` : ""}
       ${d.purpose ? `<tr><td><b>Purpose</b></td><td>${esc(d.purpose)}</td></tr>` : ""}
       ${d.message ? `<tr><td><b>Message</b></td><td>${esc(d.message)}</td></tr>` : ""}
-      <tr><td><b>Consent</b></td><td>Yes — user agreed to be contacted</td></tr>
+      <tr><td><b>Consent</b></td><td>Yes — user agreed to be contacted, incl. an automated voice callback</td></tr>
       <tr><td><b>Consent version</b></td><td>${esc(consentRecord.consentVersion)}</td></tr>
       <tr><td><b>Consent timestamp</b></td><td>${esc(consentRecord.timestamp)}</td></tr>
       <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
@@ -94,6 +97,29 @@ export async function POST(req: Request) {
     // return graceful success (the lead was captured server-side).
     console.error("[apply] email send failed:", err instanceof Error ? err.message : "unknown");
     logConsent();
+  }
+
+  // Speed-to-lead: ask the voice agent to call this consented lead back while
+  // they're still on the page. Runs LAST and can never fail the submission —
+  // requestCallback() never throws and no-ops when the agent isn't configured.
+  const voice = await requestCallback({
+    fullName: d.fullName,
+    mobile: d.mobile,
+    email: d.email,
+    category: d.category,
+    loanType: d.loanType,
+    amount: d.amount,
+    city: d.city,
+    employment: d.employment,
+    monthlySalary: d.monthlySalary,
+    employer: d.employer,
+    purpose: d.purpose,
+    consentVersion: consentRecord.consentVersion,
+    consentTimestamp: consentRecord.timestamp,
+  });
+  // Non-PII trace only: the reason, never the lead.
+  if (!voice.queued && voice.reason !== "not-configured") {
+    console.info("[apply] voice callback not queued:", voice.reason);
   }
 
   return NextResponse.json({ ok: true });
