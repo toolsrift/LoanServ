@@ -17,8 +17,11 @@ export function useCountUp(value: number, duration = 500) {
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      setDisplay(value);
-      return;
+      // Snap on the next frame rather than synchronously inside the effect.
+      rafRef.current = requestAnimationFrame(() => setDisplay(value));
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
     }
 
     fromRef.current = display;

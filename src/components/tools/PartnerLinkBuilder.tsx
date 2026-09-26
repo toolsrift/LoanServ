@@ -35,7 +35,11 @@ export function PartnerLinkBuilder() {
   const [path, setPath] = React.useState("/");
   const [copied, setCopied] = React.useState(false);
 
-  const month = new Date().toISOString().slice(5, 7) + new Date().toISOString().slice(2, 4); // mmyy
+  // mmyy suffix for customer codes, e.g. "0926". Computed once, not on every render.
+  const [month] = React.useState(() => {
+    const iso = new Date().toISOString();
+    return iso.slice(5, 7) + iso.slice(2, 4);
+  });
   const base = toCode(name);
   const code = base ? (kind === "customer" ? `cust-${base}-${month}` : base) : "";
   const link = code
