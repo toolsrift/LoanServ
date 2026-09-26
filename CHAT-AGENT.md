@@ -131,9 +131,10 @@ cap. Like the lead-form limiter, it's in-memory and best-effort (see the note in
 
 **None of this is legal advice.**
 
-- [ ] **Privacy policy.** Update `/legal/privacy-policy` to disclose that chat
-      messages are processed by an AI provider (Sarvam AI) to generate replies, and
-      that a transcript is attached to callback requests.
+- [x] **Privacy policy.** `/legal/privacy-policy` has an "AI Chat Assistant" section:
+      AI (not a person), messages processed by Sarvam AI, identifiers removed first,
+      no server-side chat history, transcript attached to callback requests. The chat
+      panel links to it.
 - [ ] **Retention.** Transcripts live only in lead emails (the app stores no chat
       history). Apply the same retention/deletion period as other lead emails.
 - [x] AI disclosure in the widget: labelled as an AI assistant, "AI can make mistakes;
