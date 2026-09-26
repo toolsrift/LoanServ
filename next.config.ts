@@ -4,13 +4,15 @@ import type { NextConfig } from "next";
  * Build a hardening set of security headers applied to every route.
  *
  * CSP is intentionally practical rather than maximal: Next.js relies on inline
- * bootstrap scripts/styles, so 'unsafe-inline' is allowed. GA and AdSense
+ * bootstrap scripts/styles, so 'unsafe-inline' is allowed. GA, Google Ads, Meta and AdSense
  * domains are only added to the relevant directives when their env vars are
  * configured, so an un-monetised deploy keeps a tighter policy.
  */
 function buildCsp(): string {
   const gaEnabled = !!process.env.NEXT_PUBLIC_GA_ID;
   const adsEnabled = !!process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  const googleAdsEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
+  const metaPixelEnabled = !!process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
   const scriptSrc = ["'self'", "'unsafe-inline'"];
   // React's dev build uses eval() for debugging features; production never does.
@@ -20,9 +22,30 @@ function buildCsp(): string {
   const frameSrc = ["'self'"];
   const imgSrc = ["'self'", "data:", "https:"];
 
+  if (gaEnabled || googleAdsEnabled) {
+    scriptSrc.push("https://www.googletagmanager.com");
+    connectSrc.push("https://www.googletagmanager.com");
+  }
   if (gaEnabled) {
-    scriptSrc.push("https://www.googletagmanager.com", "https://www.google-analytics.com");
-    connectSrc.push("https://www.google-analytics.com", "https://www.googletagmanager.com");
+    // GA4 sends hits to regional hosts (e.g. region1.google-analytics.com), not
+    // just www — without the wildcards every event is silently blocked.
+    scriptSrc.push("https://*.google-analytics.com");
+    connectSrc.push("https://*.google-analytics.com", "https://*.analytics.google.com");
+  }
+  if (googleAdsEnabled) {
+    // Google Ads conversion tracking (Google's documented CSP host list).
+    scriptSrc.push("https://www.googleadservices.com", "https://googleads.g.doubleclick.net", "https://www.google.com");
+    connectSrc.push(
+      "https://www.google.com",
+      "https://www.googleadservices.com",
+      "https://googleads.g.doubleclick.net",
+      "https://pagead2.googlesyndication.com",
+    );
+    frameSrc.push("https://td.doubleclick.net", "https://www.googletagmanager.com");
+  }
+  if (metaPixelEnabled) {
+    scriptSrc.push("https://connect.facebook.net");
+    connectSrc.push("https://www.facebook.com", "https://connect.facebook.net");
   }
   if (adsEnabled) {
     scriptSrc.push("https://pagead2.googlesyndication.com", "https://*.googlesyndication.com");

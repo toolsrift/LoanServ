@@ -26,9 +26,12 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `LEAD_TO_EMAIL` | Where leads should arrive | Lead delivery |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Your number, digits only, e.g. `9198XXXXXXXX` | Floating WhatsApp button |
 | `NEXT_PUBLIC_GSC_VERIFICATION` | Token from Search Console (Step 2) | GSC verification |
-| `NEXT_PUBLIC_GA_ID` | `G-XXXXXXX` (optional) | Google Analytics |
+| `NEXT_PUBLIC_GA_ID` | `G-XXXXXXX` (optional) | Google Analytics + lead events (see `LEADS.md`) |
 | `NEXT_PUBLIC_ADSENSE_CLIENT` | `ca-pub-XXXX` (only after AdSense approval) | Auto Ads |
 | `CHAT_AGENT_ENABLED` / `SARVAM_API_KEY` | `true` + your Sarvam key (optional — see `CHAT-AGENT.md` first) | AI chat assistant |
+| `NEXT_PUBLIC_GOOGLE_BUSINESS_URL` | Your Google Business Profile URL (optional) | Structured data `sameAs` |
+| `NEXT_PUBLIC_GOOGLE_ADS_ID` / `NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL` | `AW-…` + conversion label (only when running Google Ads) | Lead conversions in Google Ads |
+| `NEXT_PUBLIC_META_PIXEL_ID` | Pixel ID, digits only (only when running Meta ads) | Lead conversions in Meta |
 
 > The site runs fine with the optional ones blank — forms still work (leads get
 > logged), no ads load, no analytics. Fill them in when ready.

@@ -67,6 +67,10 @@ Home · `/loans` + `/loans/[slug]` · `/balance-transfer` (+`[slug]`) · `/calcu
 
 `POST /api/apply` and `POST /api/cibil-lead` validate with Zod (client + server), apply a honeypot + basic rate-limit, then email the lead via Nodemailer to `LEAD_TO_EMAIL`. No Aadhaar/PAN/bank numbers are collected in the apply form; the CIBIL form treats PAN/DOB as sensitive (HTTPS only, PAN masked in email, not persisted). If SMTP is unset, forms still succeed and log a non-PII warning.
 
+## Getting leads
+
+Every lead email names its source channel (campaign, partner `?ref=` code, referring site), form submits and phone/WhatsApp clicks are GA4 events, and Google Ads / Meta Pixel conversion tags switch on by env var. The growth playbook — Google Business Profile, partner links, ads — is in [LEADS.md](LEADS.md).
+
 ## AI agents (both off by default)
 
 - **Chat assistant** — floating chat that answers loan questions from the site's own content via Sarvam and collects callback leads (`/api/chat`, `/api/chat-lead`). Enable with `CHAT_AGENT_ENABLED=true` + `SARVAM_API_KEY`. See [CHAT-AGENT.md](CHAT-AGENT.md).

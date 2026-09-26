@@ -20,6 +20,8 @@ export function OrganizationJsonLd() {
     name: site.name,
     url: site.url,
     email: site.email,
+    // Same number the site's call buttons use — must match the Google Business Profile.
+    telephone: `+91-${site.whatsapp.slice(-10)}`,
     description: site.description,
     areaServed: site.regions,
     address: {
@@ -34,6 +36,7 @@ export function OrganizationJsonLd() {
     openingHours: "Mo-Sa 10:00-19:00",
     priceRange: "Free consultation",
     slogan: site.tagline,
+    ...(site.googleBusinessUrl ? { sameAs: [site.googleBusinessUrl] } : {}),
   };
   return <JsonLd data={data} />;
 }

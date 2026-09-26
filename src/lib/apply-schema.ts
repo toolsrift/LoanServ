@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attributionSchema } from "./attribution";
 
 /** Shared apply-form schema — used by both client validation and the API route. */
 
@@ -64,6 +65,9 @@ export const leadFields = {
 
   // Honeypot — must stay empty.
   company_website: z.string().max(0).optional().default(""),
+
+  // Where the lead came from (lib/attribution). Never fails validation.
+  attribution: attributionSchema,
 };
 
 /** Salaried applicants must give a salary — shared refinement for every lead schema. */

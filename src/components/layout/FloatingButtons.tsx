@@ -1,11 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, MessageCircle } from "lucide-react";
+import { ArrowUp, MessageCircle, Sparkles } from "lucide-react";
 import { useApply } from "@/components/apply/apply-context";
 import { useChatAgent } from "@/components/chat/chat-context";
+import { site } from "@/lib/site";
+import { trackEvent } from "@/lib/track";
 
-/** Bottom-right floating actions: Apply, chat (when enabled) + back-to-top (shown on scroll). */
+const WHATSAPP_URL = `https://wa.me/${site.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+  "Hi LoanServ, I'd like help with a loan.",
+)}`;
+
+/**
+ * Bottom-right floating actions: Apply, WhatsApp, AI chat (when enabled) and
+ * back-to-top (shown on scroll). WhatsApp clicks are counted by LeadTracking.
+ */
 export function FloatingButtons() {
   const { openApply } = useApply();
   const chat = useChatAgent();
@@ -34,14 +43,28 @@ export function FloatingButtons() {
       {chat.enabled && (
         <button
           ref={chat.launcherRef}
-          onClick={chat.openChat}
-          aria-label="Chat with the LoanServ assistant"
+          onClick={() => {
+            chat.openChat();
+            trackEvent("chat_open", { page: window.location.pathname });
+          }}
+          aria-label="Chat with the LoanServ AI assistant"
+          title="Ask our AI assistant"
           aria-expanded={chat.open}
           className="grid h-13 w-13 place-items-center rounded-full bg-evergreen text-white shadow-lift transition-transform hover:scale-105"
         >
-          <MessageCircle className="h-6 w-6" />
+          <Sparkles className="h-6 w-6" />
         </button>
       )}
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat with LoanServ on WhatsApp"
+        title="WhatsApp us"
+        className="grid h-13 w-13 place-items-center rounded-full bg-[#25D366] text-white shadow-lift transition-transform hover:scale-105"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </a>
       <button
         onClick={() => openApply()}
         className="flex h-13 items-center gap-2 rounded-full bg-saffron px-5 font-semibold text-ink shadow-lift transition-transform hover:scale-105"

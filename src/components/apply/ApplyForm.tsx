@@ -15,6 +15,8 @@ import {
   EMPLOYMENT_TYPES,
 } from "@/lib/apply-schema";
 import { cn } from "@/lib/utils";
+import { getAttribution } from "@/lib/attribution";
+import { trackLead } from "@/lib/track";
 
 type Errors = Record<string, string>;
 type EmiRow = { lender: string; emi: string; outstanding: string };
@@ -71,6 +73,7 @@ export function ApplyForm({
       amount: form.amount,
       consent: form.consent,
       existingEmis: form.hasExistingEmis ? emiRows : [],
+      attribution: getAttribution(),
     };
     const parsed = applySchema.safeParse(payload);
     if (!parsed.success) {
@@ -100,6 +103,7 @@ export function ApplyForm({
         throw new Error(data?.error || "Something went wrong. Please try again.");
       }
       setStatus("success");
+      trackLead("apply", form.category);
       onSuccess?.();
     } catch (err) {
       setStatus("error");

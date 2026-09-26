@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cibilSchema } from "@/lib/cibil-schema";
+import { getAttribution } from "@/lib/attribution";
+import { trackLead } from "@/lib/track";
 
 type Errors = Record<string, string>;
 
@@ -29,7 +31,7 @@ export function CibilForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = cibilSchema.safeParse(form);
+    const parsed = cibilSchema.safeParse({ ...form, attribution: getAttribution() });
     if (!parsed.success) {
       const fe: Errors = {};
       for (const issue of parsed.error.issues) {
@@ -52,6 +54,7 @@ export function CibilForm() {
       if (!res.ok) throw new Error(data?.error || "Something went wrong.");
       setResult(data);
       setStatus("success");
+      trackLead("cibil");
     } catch (err) {
       setStatus("error");
       setServerError(err instanceof Error ? err.message : "Submission failed");

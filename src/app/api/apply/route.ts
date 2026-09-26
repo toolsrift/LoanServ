@@ -3,6 +3,7 @@ import { applySchema, CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
 import { requestCallback } from "@/lib/voice-agent";
 import { site } from "@/lib/site";
+import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
 export const runtime = "nodejs";
 
@@ -72,11 +73,12 @@ export async function POST(req: Request) {
       <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
     </table>
     ${emiRows ? `<p><b>Existing EMIs:</b></p><ul>${emiRows}</ul>` : ""}
+    ${leadSourceHtml(d.attribution)}
     <p style="color:#888;font-size:12px">Submitted via loanserv.in apply form.</p>
   `;
 
   // Strip CR/LF from user free-text before it goes into the Subject header.
-  const subject = sanitizeHeader(`New loan lead: ${d.category} — ${d.fullName} (${d.city})`);
+  const subject = sanitizeHeader(`New loan lead: ${d.category} — ${d.fullName} (${d.city})${leadSourceTag(d.attribution)}`);
 
   // Always keep an audit trail of the consent. NOTE: a console log is NOT durable
   // — production should replace this with a database/append-only log.

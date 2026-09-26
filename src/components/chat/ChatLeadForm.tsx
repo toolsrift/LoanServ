@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ContactConsentText } from "@/components/apply/ContactConsentText";
 import { LOAN_CATEGORIES, LOAN_TYPES, CITIES, EMPLOYMENT_TYPES } from "@/lib/apply-schema";
 import { chatLeadSchema, type ChatMessage, type LeadPrefill } from "@/lib/chat-schema";
+import { getAttribution } from "@/lib/attribution";
+import { trackLead } from "@/lib/track";
 
 type Errors = Record<string, string>;
 
@@ -93,7 +95,11 @@ export function ChatLeadForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setServerError("");
-    const parsed = chatLeadSchema.safeParse({ ...form, transcript: transcript.slice(-40) });
+    const parsed = chatLeadSchema.safeParse({
+      ...form,
+      transcript: transcript.slice(-40),
+      attribution: getAttribution(),
+    });
     if (!parsed.success) {
       const fieldErrors: Errors = {};
       for (const issue of parsed.error.issues) {
@@ -116,6 +122,7 @@ export function ChatLeadForm({
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Something went wrong. Please try again.");
       }
+      trackLead("chat", form.category);
       onSubmitted({ firstName: form.fullName.trim().split(" ")[0], mobile: form.mobile });
     } catch (err) {
       setStatus("error");

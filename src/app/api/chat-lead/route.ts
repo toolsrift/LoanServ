@@ -5,6 +5,7 @@ import { redactPii } from "@/lib/chat-text";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
 import { requestCallback } from "@/lib/voice-agent";
 import { site } from "@/lib/site";
+import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
 export const runtime = "nodejs";
 
@@ -72,11 +73,12 @@ export async function POST(req: Request) {
       <tr><td><b>Consent timestamp</b></td><td>${esc(consentRecord.timestamp)}</td></tr>
       <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
     </table>
+    ${leadSourceHtml(d.attribution)}
     ${transcript ? `<h3>Chat transcript</h3><div style="font-size:14px">${transcript}</div>` : ""}
     <p style="color:#888;font-size:12px">Submitted via the loanserv.in chat assistant. Assistant replies are AI-generated.</p>
   `;
 
-  const subject = sanitizeHeader(`New chat lead: ${d.category} — ${d.fullName} (${d.city})`);
+  const subject = sanitizeHeader(`New chat lead: ${d.category} — ${d.fullName} (${d.city})${leadSourceTag(d.attribution)}`);
 
   // A console log is NOT durable — see the same note in the apply route.
   const logConsent = () =>
