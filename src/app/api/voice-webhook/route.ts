@@ -1,96 +1,123 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
-import { verifyWebhookSignature, WEBHOOK_SIGNATURE_HEADER } from "@/lib/voice-agent";
+import { verifyWebhookAuth } from "@/lib/voice-agent";
 
 export const runtime = "nodejs";
 
 /**
- * Call-result webhook from the self-hosted Dograh voice agent.
+ * Call-result webhook from the Dograh voice agent's Webhook node.
  *
- * Authenticated by HMAC over the raw body — without DOGRAH_WEBHOOK_SECRET set,
- * every request is rejected, so an unconfigured deployment cannot be fed forged
- * call results. See VOICE-AGENT.md.
+ * Authenticated by a Bearer token (a Dograh "Bearer Token" credential equal to
+ * DOGRAH_WEBHOOK_SECRET) — without the secret set, every request is rejected,
+ * so an unconfigured deployment cannot be fed forged call results.
+ *
+ * Dograh renders its payload template as strings ("" when a variable is
+ * missing), so every field is read as text. The expected template is in
+ * voice/callback-agent.md; extra fields are shown in the email as-is.
  */
 
-// Loose object: Dograh may add fields; unknown keys are carried through harmlessly.
-const callResultSchema = z.looseObject({
-  call_id: z.string().max(120),
-  status: z.string().max(40),
-  phone_number: z.string().max(20).optional(),
-  duration_seconds: z.coerce.number().min(0).max(86_400).optional(),
-  /** Set by the workflow's qualification branch. */
-  qualified: z.boolean().optional(),
-  disposition: z.string().max(120).optional(),
-  summary: z.string().max(4_000).optional(),
-  transcript: z.string().max(60_000).optional(),
-  recording_url: z.string().url().max(1_000).optional(),
-  variables: z.record(z.string(), z.string().max(500)).optional(),
-});
+// Primitives only; Dograh may add fields (e.g. a top-level call_disposition).
+const payloadSchema = z.record(z.string().max(80), z.union([z.string(), z.number(), z.boolean(), z.null()]));
+
+/** Fields rendered in a fixed order with readable labels; everything else follows. */
+const KNOWN_FIELDS: [key: string, label: string][] = [
+  ["full_name", "Name"],
+  ["phone_number", "Mobile"],
+  ["loan_category", "Loan"],
+  ["amount", "Amount on form (₹)"],
+  ["city", "City"],
+  ["disposition", "Outcome"],
+  ["call_status", "How the call ended"],
+  ["duration_seconds", "Duration (s)"],
+  ["interested", "Still interested"],
+  ["confirmed_amount", "Amount confirmed on call"],
+  ["monthly_income", "Monthly income"],
+  ["existing_emis", "Existing EMIs"],
+  ["employment_details", "Employment"],
+  ["preferred_callback_time", "Preferred time for advisor"],
+  ["wants_human", "Asked for a person"],
+  ["language", "Language used"],
+  ["summary", "Summary"],
+  ["call_id", "Dograh run ID"],
+];
+const HIDDEN = new Set(["recording_url", "transcript_url", "call_disposition"]);
+
+// Dograh retries deliveries, so the same result can arrive twice. Best-effort,
+// per-instance de-duplication keeps the inbox to one email per call.
+const seen: string[] = [];
+function alreadySeen(callId: string): boolean {
+  if (seen.includes(callId)) return true;
+  seen.push(callId);
+  if (seen.length > 500) seen.shift();
+  return false;
+}
+
+const text = (v: unknown) => (v == null ? "" : String(v).trim().slice(0, 4000));
+const isHttpsUrl = (v: string) => /^https:\/\/[^\s"'<>]+$/.test(v);
 
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-  // Coarse backstop; the HMAC below is the real gate.
+  // Coarse backstop; the Bearer secret below is the real gate.
   if (!rateLimit(`voice-webhook:${ip}`, 60)) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  // Read the RAW body — the signature is computed over these exact bytes.
-  const raw = await req.text();
-  if (!verifyWebhookSignature(raw, req.headers.get(WEBHOOK_SIGNATURE_HEADER))) {
-    console.warn("[voice-webhook] rejected: bad or missing signature");
+  if (!verifyWebhookAuth(req.headers.get("authorization"))) {
+    console.warn("[voice-webhook] rejected: bad or missing credentials");
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  let body: unknown;
-  try {
-    body = JSON.parse(raw);
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
-
-  const parsed = callResultSchema.safeParse(body);
+  const body: unknown = await req.json().catch(() => null);
+  const parsed = payloadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Unexpected payload." }, { status: 422 });
   }
-  const c = parsed.data;
+  const p = Object.fromEntries(Object.entries(parsed.data).map(([k, v]) => [k, text(v)]));
 
-  const vars = c.variables || {};
-  const name = vars.full_name || "Unknown";
-  const outcome = c.qualified === true ? "QUALIFIED" : c.qualified === false ? "Not qualified" : c.status;
+  const callId = p.call_id || "";
+  if (callId && alreadySeen(callId)) return NextResponse.json({ ok: true, duplicate: true });
 
-  const varRows = Object.entries(vars)
-    .filter(([k]) => k !== "full_name")
-    .map(([k, v]) => `<tr><td><b>${esc(k)}</b></td><td>${esc(v)}</td></tr>`)
+  const disposition = p.disposition || p.call_disposition || p.call_status || "unknown";
+  const doNotCall = /do[_\s-]?not[_\s-]?call/i.test(disposition);
+  const name = p.full_name || "Unknown";
+
+  const rows = [
+    ...KNOWN_FIELDS.filter(([k]) => p[k]).map(([k, label]) => [label, p[k]] as const),
+    ...Object.entries(p)
+      .filter(([k, v]) => v && !HIDDEN.has(k) && !KNOWN_FIELDS.some(([f]) => f === k))
+      .slice(0, 30),
+  ]
+    .map(([k, v]) => `<tr><td><b>${esc(k)}</b></td><td>${esc(v).replace(/\n/g, "<br>")}</td></tr>`)
+    .join("");
+
+  const links = (["recording_url", "transcript_url"] as const)
+    .filter((k) => isHttpsUrl(p[k] || ""))
+    .map((k) => `<p><b>${k === "recording_url" ? "Recording" : "Transcript"}:</b> <a href="${esc(p[k])}">${esc(p[k])}</a></p>`)
     .join("");
 
   const html = `
-    <h2>Voice callback result — ${esc(outcome)}</h2>
-    <table cellpadding="6" style="border-collapse:collapse">
-      <tr><td><b>Name</b></td><td>${esc(name)}</td></tr>
-      <tr><td><b>Mobile</b></td><td>${esc(c.phone_number || "—")}</td></tr>
-      <tr><td><b>Call status</b></td><td>${esc(c.status)}</td></tr>
-      <tr><td><b>Disposition</b></td><td>${esc(c.disposition || "—")}</td></tr>
-      <tr><td><b>Duration</b></td><td>${esc(c.duration_seconds ?? "—")}s</td></tr>
-      <tr><td><b>Call ID</b></td><td>${esc(c.call_id)}</td></tr>
-      ${varRows}
-    </table>
-    ${c.summary ? `<h3>Summary</h3><p>${esc(c.summary)}</p>` : ""}
-    ${c.recording_url ? `<p><b>Recording:</b> ${esc(c.recording_url)}</p>` : ""}
-    ${c.transcript ? `<h3>Transcript</h3><pre style="white-space:pre-wrap;font-size:12px">${esc(c.transcript)}</pre>` : ""}
-    <p style="color:#888;font-size:12px">Automated call placed by the LoanServ voice agent to a consented lead.</p>
+    ${
+      doNotCall
+        ? `<p style="background:#fde8e8;color:#9b1c1c;padding:10px;font-weight:bold">DO NOT CALL — this person asked not to be contacted again. Do not call or message them.</p>`
+        : ""
+    }
+    <h2>Voice callback result — ${esc(disposition)}</h2>
+    <table cellpadding="6" style="border-collapse:collapse">${rows}</table>
+    ${links}
+    <p style="color:#888;font-size:12px">Automated call placed by the LoanServ AI voice agent to a consented lead. Outcome and extracted details are AI-generated — check the recording before relying on them.</p>
   `;
 
-  const subject = sanitizeHeader(`Voice callback (${outcome}): ${name}`);
+  const subject = sanitizeHeader(`${doNotCall ? "DO NOT CALL — " : ""}Voice callback (${disposition}): ${name}`);
 
   try {
     const { sent } = await sendLeadEmail({ subject, html });
     // Never log the transcript or the number — only a non-PII trace.
-    if (!sent) console.info("VOICE_CALL_RESULT", JSON.stringify({ callId: c.call_id, status: c.status }));
+    if (!sent) console.info("VOICE_CALL_RESULT", JSON.stringify({ callId, disposition }));
   } catch (err) {
     console.error("[voice-webhook] email send failed:", err instanceof Error ? err.message : "unknown");
-    console.info("VOICE_CALL_RESULT", JSON.stringify({ callId: c.call_id, status: c.status }));
+    console.info("VOICE_CALL_RESULT", JSON.stringify({ callId, disposition }));
   }
 
   // Always 200 once authenticated so Dograh does not retry a delivered result.
