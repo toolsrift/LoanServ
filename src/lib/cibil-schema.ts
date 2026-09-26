@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attributionSchema } from "./attribution";
 
 /** Consent-based free credit-score check. PAN/DOB are sensitive — handled with care. */
 export const cibilSchema = z.object({
@@ -33,6 +34,7 @@ export const cibilSchema = z.object({
     ),
   consent: z.boolean().refine((v) => v === true, { message: "Consent is required to check your score" }),
   company_website: z.string().max(0).optional().default(""), // honeypot
+  attribution: attributionSchema, // lead source (lib/attribution); never fails validation
 });
 
 export type CibilInput = z.infer<typeof cibilSchema>;

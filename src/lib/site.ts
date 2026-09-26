@@ -34,6 +34,12 @@ export const site = {
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919000308525",
   adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "",
   gaId: process.env.NEXT_PUBLIC_GA_ID || "",
+  // Ad conversion tags — each loads only when set (see LEADS.md).
+  googleAdsId: process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "", // "AW-123456789"
+  googleAdsLeadLabel: process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL || "",
+  metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || "",
+  // Google Business Profile URL — linked from the site's structured data once it exists.
+  googleBusinessUrl: process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL || "",
 } as const;
 
 export type SiteConfig = typeof site;

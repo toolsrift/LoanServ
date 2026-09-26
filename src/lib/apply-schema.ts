@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attributionSchema } from "./attribution";
 
 /** Shared apply-form schema — used by both client validation and the API route. */
 
@@ -34,20 +35,55 @@ export const existingEmiSchema = z.object({
   outstanding: z.string().max(40).optional().default(""),
 });
 
+/**
+ * Version of the contact-consent text (see ContactConsentText) the user agreed
+ * to. Bump when the wording changes.
+ * 2.0 — added explicit consent to an automated (AI) voice callback, which is a
+ * separate channel from email/WhatsApp under TRAI rules.
+ */
+export const CONTACT_CONSENT_VERSION = "2.0";
+
+/**
+ * Fields every lead form shares (apply form + chat callback form), kept as a
+ * plain shape so each form can build its own object schema from it.
+ */
+export const leadFields = {
+  fullName: z.string().min(2, "Please enter your full name").max(80),
+  mobile: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
+  email: z.string().email("Enter a valid email address"),
+
+  category: z.enum(LOAN_CATEGORIES),
+  loanType: z.enum(LOAN_TYPES),
+  amount: z.coerce.number().min(10000, "Minimum ₹10,000").max(1000000000),
+  city: z.enum(CITIES),
+  employment: z.enum(EMPLOYMENT_TYPES),
+
+  // Conditional — salaried
+  monthlySalary: z.string().max(20).optional().default(""),
+
+  consent: z.boolean().refine((v) => v === true, { message: "Consent is required to proceed" }),
+
+  // Honeypot — must stay empty.
+  company_website: z.string().max(0).optional().default(""),
+
+  // Where the lead came from (lib/attribution). Never fails validation.
+  attribution: attributionSchema,
+};
+
+/** Salaried applicants must give a salary — shared refinement for every lead schema. */
+export function hasSalaryIfSalaried(d: { employment: string; monthlySalary: string }): boolean {
+  return d.employment !== "Salaried" || d.monthlySalary.trim().length > 0;
+}
+export const SALARY_REQUIRED = {
+  path: ["monthlySalary"],
+  message: "Please enter your monthly net salary",
+};
+
 export const applySchema = z
   .object({
-    fullName: z.string().min(2, "Please enter your full name").max(80),
-    mobile: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
-    email: z.string().email("Enter a valid email address"),
-
-    category: z.enum(LOAN_CATEGORIES),
-    loanType: z.enum(LOAN_TYPES),
-    amount: z.coerce.number().min(10000, "Minimum ₹10,000").max(1000000000),
-    city: z.enum(CITIES),
-    employment: z.enum(EMPLOYMENT_TYPES),
+    ...leadFields,
 
     // Conditional — salaried
-    monthlySalary: z.string().max(20).optional().default(""),
     employer: z.string().max(120).optional().default(""),
     workLocation: z.string().max(120).optional().default(""),
 
@@ -61,15 +97,7 @@ export const applySchema = z
 
     purpose: z.string().max(400).optional().default(""),
     message: z.string().max(1000).optional().default(""),
-
-    consent: z.boolean().refine((v) => v === true, { message: "Consent is required to proceed" }),
-
-    // Honeypot — must stay empty.
-    company_website: z.string().max(0).optional().default(""),
   })
-  .refine((d) => d.employment !== "Salaried" || d.monthlySalary.trim().length > 0, {
-    path: ["monthlySalary"],
-    message: "Please enter your monthly net salary",
-  });
+  .refine(hasSalaryIfSalaried, SALARY_REQUIRED);
 
 export type ApplyInput = z.infer<typeof applySchema>;

@@ -3,8 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-const KEY = "loanserv-cookie-consent";
+import { CONSENT_KEY, setConsent, type ConsentChoice } from "@/lib/consent";
 
 /** Lightweight cookie notice (required for AdSense/analytics disclosure). */
 export function CookieBanner() {
@@ -12,18 +11,14 @@ export function CookieBanner() {
 
   React.useEffect(() => {
     try {
-      if (!localStorage.getItem(KEY)) setVisible(true);
+      if (!localStorage.getItem(CONSENT_KEY)) setVisible(true);
     } catch {
       /* storage blocked — stay hidden */
     }
   }, []);
 
-  function decide(value: "accepted" | "declined") {
-    try {
-      localStorage.setItem(KEY, value);
-    } catch {
-      /* ignore */
-    }
+  function decide(value: ConsentChoice) {
+    setConsent(value);
     setVisible(false);
   }
 

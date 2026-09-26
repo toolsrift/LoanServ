@@ -3,6 +3,7 @@ import { cibilSchema } from "@/lib/cibil-schema";
 import { fetchCreditScore, isCreditBureauConfigured } from "@/lib/credit-score";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
 import { site } from "@/lib/site";
+import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
 export const runtime = "nodejs";
 
@@ -63,12 +64,13 @@ export async function POST(req: Request) {
       <tr><td><b>Consent timestamp</b></td><td>${esc(consentRecord.timestamp)}</td></tr>
       <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
     </table>
+    ${leadSourceHtml(d.attribution)}
     <p style="color:#888;font-size:12px">Full PAN/DOB were provided with consent and are intentionally not included in
     this email. Retrieve securely per your bureau agreement.</p>
   `;
 
   // Strip CR/LF from user free-text before it goes into the Subject header.
-  const subject = sanitizeHeader(`Free CIBIL request: ${d.fullName} (${d.mobile})`);
+  const subject = sanitizeHeader(`Free CIBIL request: ${d.fullName} (${d.mobile})${leadSourceTag(d.attribution)}`);
 
   // Always emit a durable-ish audit trail of the consent. NOTE: a console log is
   // NOT a durable store — in production replace this with a database/append-only
