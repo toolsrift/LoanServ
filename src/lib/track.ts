@@ -25,7 +25,7 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
  * A lead was submitted. Sends GA4's recommended `generate_lead` event, the
  * Google Ads conversion (when configured) and the Meta Pixel `Lead` event.
  */
-export function trackLead(form: "apply" | "chat" | "cibil", category?: string): void {
+export function trackLead(form: "apply" | "chat" | "cibil" | "partner", category?: string): void {
   trackEvent("generate_lead", { form_name: form, loan_category: category || "" });
   try {
     if (site.googleAdsId && site.googleAdsLeadLabel) {
