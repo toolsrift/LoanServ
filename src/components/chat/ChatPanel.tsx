@@ -131,7 +131,11 @@ export function ChatPanel() {
 
       <p className="border-b border-sand bg-saffron/10 px-4 py-2 text-[0.72rem] leading-snug text-slate">
         AI can make mistakes; rates are indicative. LoanServ is a DSA, not a lender. Please don&apos;t share
-        Aadhaar, PAN or bank details here.
+        Aadhaar, PAN or bank details here. Messages are processed by our AI provider, Sarvam AI —{" "}
+        <Link href="/legal/privacy-policy" onClick={onNavigate} className="underline underline-offset-2">
+          Privacy Policy
+        </Link>
+        .
       </p>
 
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
