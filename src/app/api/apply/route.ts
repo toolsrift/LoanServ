@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { applySchema, CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
-import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
-import { requestCallback } from "@/lib/voice-agent";
+import { rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
+import { deliverLead, leadAlertText } from "@/lib/lead-delivery";
+import { channelLabel } from "@/lib/attribution";
 import { site } from "@/lib/site";
 import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
@@ -13,7 +15,7 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "unknown";
 
-  if (!rateLimit(`apply:${ip}`)) {
+  if (!(await allowRequest(rateLimit, `apply:${ip}`))) {
     return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
   }
 
@@ -33,6 +35,101 @@ export async function POST(req: Request) {
   // Honeypot — silently accept but drop.
   if (d.company_website) {
     return NextResponse.json({ ok: true });
+  }
+
+  const emiRows = (d.existingEmis || [])
+    .filter((r) => r.lender || r.emi || r.outstanding)
+    .map((r) => `<li>${esc(r.lender)} — EMI ₹${esc(r.emi)}, outstanding: ${esc(r.outstanding)}</li>`)
+    .join("");
+
+  // Consent record captured with request metadata so informed consent can be
+  // proven even if email delivery fails.
+  const consentRecord = {
+    timestamp: new Date().toISOString(),
+    ip,
+    consentVersion: CONTACT_CONSENT_VERSION,
+  };
+
+  const html = `
+    <h2>New loan enquiry — ${esc(site.name)}</h2>
+    <table cellpadding="6" style="border-collapse:collapse">
+      <tr><td><b>Name</b></td><td>${esc(d.fullName)}</td></tr>
+      <tr><td><b>Mobile</b></td><td>+91 ${esc(d.mobile)}</td></tr>
+      <tr><td><b>Email</b></td><td>${esc(d.email)}</td></tr>
+      <tr><td><b>Category</b></td><td>${esc(d.category)}</td></tr>
+      <tr><td><b>Loan type</b></td><td>${esc(d.loanType)}</td></tr>
+      <tr><td><b>Amount</b></td><td>₹${esc(d.amount)}</td></tr>
+      <tr><td><b>City</b></td><td>${esc(d.city)}</td></tr>
+      <tr><td><b>Employment</b></td><td>${esc(d.employment)}</td></tr>
+      ${d.monthlySalary ? `<tr><td><b>Monthly salary</b></td><td>₹${esc(d.monthlySalary)}</td></tr>` : ""}
+      ${d.employer ? `<tr><td><b>Employer</b></td><td>${esc(d.employer)}</td></tr>` : ""}
+      ${d.workLocation ? `<tr><td><b>Work location</b></td><td>${esc(d.workLocation)}</td></tr>` : ""}
+      ${d.turnover ? `<tr><td><b>Annual turnover</b></td><td>₹${esc(d.turnover)}</td></tr>` : ""}
+      ${d.businessNature ? `<tr><td><b>Business</b></td><td>${esc(d.businessNature)}</td></tr>` : ""}
+      ${d.businessVintage ? `<tr><td><b>Vintage</b></td><td>${esc(d.businessVintage)} yrs</td></tr>` : ""}
+      ${d.purpose ? `<tr><td><b>Purpose</b></td><td>${esc(d.purpose)}</td></tr>` : ""}
+      ${d.message ? `<tr><td><b>Message</b></td><td>${esc(d.message)}</td></tr>` : ""}
+      <tr><td><b>Consent</b></td><td>Yes — user agreed to be contacted, incl. an automated voice callback</td></tr>
+      <tr><td><b>Consent version</b></td><td>${esc(consentRecord.consentVersion)}</td></tr>
+      <tr><td><b>Consent timestamp</b></td><td>${esc(consentRecord.timestamp)}</td></tr>
+      <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
+    </table>
+    ${emiRows ? `<p><b>Existing EMIs:</b></p><ul>${emiRows}</ul>` : ""}
+    ${leadSourceHtml(d.attribution)}
+    <p style="color:#888;font-size:12px">Submitted via loanserv.in apply form.</p>
+  `;
+
+  // Strip CR/LF from user free-text before it goes into the Subject header.
+  const subject = sanitizeHeader(`New loan lead: ${d.category} — ${d.fullName} (${d.city})${leadSourceTag(d.attribution)}`);
+
+  const channel = channelLabel(d.attribution);
+  await deliverLead({
+    record: {
+      form: "apply",
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      channel,
+      attribution: d.attribution,
+      details: {
+        monthlySalary: d.monthlySalary,
+        employer: d.employer,
+        workLocation: d.workLocation,
+        turnover: d.turnover,
+        businessNature: d.businessNature,
+        businessVintage: d.businessVintage,
+        existingEmis: d.hasExistingEmis ? d.existingEmis : [],
+        purpose: d.purpose,
+        message: d.message,
+      },
+      consent: { version: consentRecord.consentVersion, timestamp: consentRecord.timestamp, ip },
+    },
+    email: { subject, html, replyTo: d.email },
+    alertText: leadAlertText({ form: "apply", ...d, channel }),
+    // Consent v2.0 covers the automated voice callback.
+    voice: {
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      monthlySalary: d.monthlySalary,
+      employer: d.employer,
+      purpose: d.purpose,
+      consentVersion: consentRecord.consentVersion,
+      consentTimestamp: consentRecord.timestamp,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
   }
 
   const emiRows = (d.existingEmis || [])

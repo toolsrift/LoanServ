@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { cibilSchema } from "@/lib/cibil-schema";
 import { fetchCreditScore, isCreditBureauConfigured } from "@/lib/credit-score";
-import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
+import { deliverLead, leadAlertText } from "@/lib/lead-delivery";
+import { channelLabel } from "@/lib/attribution";
 import { site } from "@/lib/site";
 import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
@@ -14,7 +17,7 @@ const CONSENT_VERSION = "1.0";
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-  if (!rateLimit(`cibil:${ip}`)) {
+  if (!(await allowRequest(rateLimit, `cibil:${ip}`))) {
     return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
   }
 
@@ -72,22 +75,23 @@ export async function POST(req: Request) {
   // Strip CR/LF from user free-text before it goes into the Subject header.
   const subject = sanitizeHeader(`Free CIBIL request: ${d.fullName} (${d.mobile})${leadSourceTag(d.attribution)}`);
 
-  // Always emit a durable-ish audit trail of the consent. NOTE: a console log is
-  // NOT a durable store — in production replace this with a database/append-only
-  // log so consent records survive process restarts and are queryable.
-  const logConsent = () =>
-    console.info("CONSENT_RECORD", JSON.stringify({ form: "cibil-lead", ...consentRecord }));
-
-  try {
-    const { sent } = await sendLeadEmail({ subject, html, replyTo: d.email });
-    // If SMTP is unset the lead isn't emailed — never silently lose a consented lead.
-    if (!sent) logConsent();
-  } catch (err) {
-    // Email failed — log the consent+lead record so it isn't lost, then still
-    // return graceful success to the user (the lead was captured server-side).
-    console.error("[cibil] email send failed:", err instanceof Error ? err.message : "unknown");
-    logConsent();
-  }
+  const channel = channelLabel(d.attribution);
+  await deliverLead({
+    record: {
+      form: "cibil",
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      channel,
+      attribution: d.attribution,
+      // Masked PAN only — full PAN/DOB are never stored.
+      details: { maskedPan },
+      consent: { version: consentRecord.consentVersion, timestamp: consentRecord.timestamp, ip },
+    },
+    email: { subject, html, replyTo: d.email },
+    alertText: leadAlertText({ form: "CIBIL check", fullName: d.fullName, mobile: d.mobile, channel }),
+    // No voice callback: consent v1.0 covers the credit check, not a call.
+  });
 
   return NextResponse.json({ ok: true, mode: "lead", brand: site.name });
 }
