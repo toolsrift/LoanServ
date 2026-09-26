@@ -1,15 +1,18 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 /**
  * Dograh voice-agent bridge — "speed to lead" callbacks.
  *
- * The voice agent itself is a separate self-hosted Dograh service (Docker); this
- * module is only the seam between a consented lead and that service. Like every
- * other integration in this codebase it degrades gracefully: when the env vars
- * are absent the site behaves exactly as before and the lead is still captured.
+ * The voice agent itself is a separate Dograh service (self-hosted Docker or
+ * Dograh cloud); this module is only the seam between a consented lead and
+ * that service. Like every other integration in this codebase it degrades
+ * gracefully: when the env vars are absent the site behaves exactly as before
+ * and the lead is still captured.
  *
- * See VOICE-AGENT.md for deployment + the India compliance checklist.
+ * Matches Dograh's documented API Trigger + Webhook node contracts. See
+ * VOICE-AGENT.md for deployment + the India compliance checklist, and
+ * voice/callback-agent.md for the workflow (prompts, extraction, webhook).
  */
 
 /** How long we wait for Dograh to accept the call request before giving up. */
@@ -21,9 +24,6 @@ const REQUEST_TIMEOUT_MS = 4_000;
  */
 const CALL_WINDOW_START_HOUR = 8;
 const CALL_WINDOW_END_HOUR = 19;
-
-/** Header Dograh signs the webhook body with. Must match the Dograh config. */
-export const WEBHOOK_SIGNATURE_HEADER = "x-dograh-signature";
 
 export type VoiceCallbackLead = {
   fullName: string;
@@ -47,11 +47,18 @@ export type VoiceCallbackResult = {
   queued: boolean;
   /** Non-PII reason, safe to log, when the call was not queued. */
   reason?: string;
+  /** Dograh workflow_run_id of the queued call. */
   callId?: string;
 };
 
 function env(name: string): string {
   return (process.env[name] || "").trim();
+}
+
+/** Optional positive integer env var (Dograh config ids); undefined if unset or invalid. */
+function envInt(name: string): number | undefined {
+  const n = Number(env(name));
+  return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
 /** True only when every piece needed to place a call is configured. */
@@ -60,7 +67,7 @@ export function isVoiceAgentEnabled(): boolean {
     env("VOICE_AGENT_ENABLED") === "true" &&
     Boolean(env("DOGRAH_API_URL")) &&
     Boolean(env("DOGRAH_API_KEY")) &&
-    Boolean(env("DOGRAH_WORKFLOW_ID"))
+    Boolean(env("DOGRAH_TRIGGER_UUID"))
   );
 }
 
@@ -80,21 +87,37 @@ export function isWithinCallingWindow(now: Date = new Date()): boolean {
 }
 
 /**
- * Payload sent to Dograh. The `variables` keys must match the variable names
- * used by the deployed Dograh workflow — keep this map and the workflow in sync
- * (VOICE-AGENT.md lists the expected names).
+ * Loan amount the way a person says it — "5 lakh rupees", "1.5 crore rupees" —
+ * so the voice doesn't read out "five hundred thousand".
  */
-function buildCallPayload(lead: VoiceCallbackLead) {
+export function amountInWords(amount: number): string {
+  const fmt = (n: number) => String(Math.round(n * 100) / 100);
+  if (amount >= 1_00_00_000) return `${fmt(amount / 1_00_00_000)} crore rupees`;
+  if (amount >= 1_00_000) return `${fmt(amount / 1_00_000)} lakh rupees`;
+  if (amount >= 1_000) return `${fmt(amount / 1_000)} thousand rupees`;
+  return `${amount} rupees`;
+}
+
+/**
+ * Body for Dograh's API Trigger (`POST /api/v1/public/agent/{uuid}`). The
+ * `initial_context` keys are what the workflow prompt references as
+ * `{{full_name}}` etc. — keep them in sync with voice/callback-agent.md.
+ */
+export function buildCallPayload(lead: VoiceCallbackLead) {
+  const telephonyConfigId = envInt("DOGRAH_TELEPHONY_CONFIG_ID");
+  const fromNumberId = envInt("DOGRAH_FROM_PHONE_NUMBER_ID");
   return {
-    workflow_id: env("DOGRAH_WORKFLOW_ID"),
     phone_number: `+91${lead.mobile}`,
-    // Optional: pin the outbound caller ID to a DLT-registered number.
-    ...(env("DOGRAH_FROM_NUMBER") ? { from_number: env("DOGRAH_FROM_NUMBER") } : {}),
-    variables: {
+    // Optional: route through a specific telephony config / DLT-registered caller ID.
+    ...(telephonyConfigId ? { telephony_configuration_id: telephonyConfigId } : {}),
+    ...(fromNumberId ? { from_phone_number_id: fromNumberId } : {}),
+    initial_context: {
       full_name: lead.fullName,
+      first_name: lead.fullName.trim().split(/\s+/)[0] || lead.fullName,
       loan_category: lead.category,
       loan_type: lead.loanType,
       amount: String(lead.amount),
+      amount_words: amountInWords(lead.amount),
       city: lead.city,
       employment: lead.employment,
       monthly_salary: lead.monthlySalary || "",
@@ -115,14 +138,15 @@ export async function requestCallback(lead: VoiceCallbackLead): Promise<VoiceCal
   if (!isVoiceAgentEnabled()) return { queued: false, reason: "not-configured" };
   if (!isWithinCallingWindow()) return { queued: false, reason: "outside-calling-window" };
 
-  const url = `${env("DOGRAH_API_URL").replace(/\/$/, "")}/api/v1/calls`;
+  const base = env("DOGRAH_API_URL").replace(/\/$/, "");
+  const url = `${base}/api/v1/public/agent/${encodeURIComponent(env("DOGRAH_TRIGGER_UUID"))}`;
 
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${env("DOGRAH_API_KEY")}`,
+        "x-api-key": env("DOGRAH_API_KEY"),
       },
       body: JSON.stringify(buildCallPayload(lead)),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -131,9 +155,8 @@ export async function requestCallback(lead: VoiceCallbackLead): Promise<VoiceCal
 
     if (!res.ok) return { queued: false, reason: `http-${res.status}` };
 
-    // Tolerate a body-less 202 — acceptance is what matters, not the shape.
-    const data = (await res.json().catch(() => ({}))) as { id?: string; call_id?: string };
-    return { queued: true, callId: data.call_id || data.id };
+    const data = (await res.json().catch(() => ({}))) as { workflow_run_id?: number | string };
+    return { queued: true, callId: data.workflow_run_id != null ? String(data.workflow_run_id) : undefined };
   } catch (err) {
     const reason = err instanceof Error && err.name === "TimeoutError" ? "timeout" : "network-error";
     return { queued: false, reason };
@@ -141,20 +164,17 @@ export async function requestCallback(lead: VoiceCallbackLead): Promise<VoiceCal
 }
 
 /**
- * Verifies the HMAC-SHA256 signature Dograh sends with each webhook, computed
- * over the raw request body. Returns false when no secret is configured so an
- * unsecured endpoint can never accept forged call results.
+ * Authenticates Dograh's call-result webhook. Dograh doesn't sign webhook
+ * bodies; its Webhook node sends a stored credential instead, configured as
+ * a Bearer token equal to DOGRAH_WEBHOOK_SECRET. Returns false when no secret
+ * is configured, so an unsecured endpoint can never accept forged results.
  */
-export function verifyWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
+export function verifyWebhookAuth(authorizationHeader: string | null): boolean {
   const secret = env("DOGRAH_WEBHOOK_SECRET");
-  if (!secret || !signatureHeader) return false;
-
-  // Accept both "sha256=<hex>" and a bare hex digest.
-  const provided = signatureHeader.startsWith("sha256=") ? signatureHeader.slice(7) : signatureHeader;
-  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-
-  const a = Buffer.from(provided, "hex");
-  const b = Buffer.from(expected, "hex");
-  if (a.length !== b.length) return false;
+  if (!secret || !authorizationHeader) return false;
+  const provided = authorizationHeader.replace(/^Bearer\s+/i, "").trim();
+  // Hash both sides so the comparison is constant-time regardless of length.
+  const a = createHash("sha256").update(provided, "utf8").digest();
+  const b = createHash("sha256").update(secret, "utf8").digest();
   return timingSafeEqual(a, b);
 }
