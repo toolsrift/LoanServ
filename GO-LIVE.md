@@ -28,6 +28,7 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `NEXT_PUBLIC_GSC_VERIFICATION` | Token from Search Console (Step 2) | GSC verification |
 | `NEXT_PUBLIC_GA_ID` | `G-XXXXXXX` (optional) | Google Analytics |
 | `NEXT_PUBLIC_ADSENSE_CLIENT` | `ca-pub-XXXX` (only after AdSense approval) | Auto Ads |
+| `CHAT_AGENT_ENABLED` / `SARVAM_API_KEY` | `true` + your Sarvam key (optional — see `CHAT-AGENT.md` first) | AI chat assistant |
 
 > The site runs fine with the optional ones blank — forms still work (leads get
 > logged), no ads load, no analytics. Fill them in when ready.

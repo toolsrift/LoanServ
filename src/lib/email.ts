@@ -42,6 +42,8 @@ export async function sendLeadEmail({
   return { sent: true };
 }
 
+export type RateLimiter = (key: string, limit?: number, windowMs?: number) => boolean;
+
 /**
  * Very small in-memory rate limiter (per-instance) to blunt spam bursts.
  *
@@ -52,47 +54,54 @@ export async function sendLeadEmail({
  * with a shared store (Upstash/Vercel KV) keyed on a platform-trusted client IP.
  * Here we at least (a) evict expired entries so the Map can't grow unbounded and
  * (b) enforce a global request cap as a coarse spam backstop.
+ *
+ * Each call builds an independent limiter with its own map and global cap, so
+ * one feature's traffic (e.g. chat) can't exhaust the cap lead capture uses.
  */
-const hits = new Map<string, { count: number; ts: number }>();
+export function createRateLimiter({ globalLimit = 300 }: { globalLimit?: number } = {}): RateLimiter {
+  const hits = new Map<string, { count: number; ts: number }>();
 
-// Global backstop: total accepted requests across ALL keys within a window.
-const GLOBAL_LIMIT = 300;
-let globalCount = 0;
-let globalTs = Date.now();
-let lastSweep = Date.now();
+  // Global backstop: total accepted requests across ALL keys within a window.
+  let globalCount = 0;
+  let globalTs = Date.now();
+  let lastSweep = Date.now();
 
-/** Drop entries whose window has elapsed so the Map stays bounded. */
-function evictExpired(now: number, windowMs: number): void {
-  // Sweep at most once per window to keep the common path cheap.
-  if (now - lastSweep < windowMs) return;
-  lastSweep = now;
-  for (const [k, v] of hits) {
-    if (now - v.ts > windowMs) hits.delete(k);
+  /** Drop entries whose window has elapsed so the Map stays bounded. */
+  function evictExpired(now: number, windowMs: number): void {
+    // Sweep at most once per window to keep the common path cheap.
+    if (now - lastSweep < windowMs) return;
+    lastSweep = now;
+    for (const [k, v] of hits) {
+      if (now - v.ts > windowMs) hits.delete(k);
+    }
   }
-}
 
-export function rateLimit(key: string, limit = 5, windowMs = 60_000): boolean {
-  const now = Date.now();
-  evictExpired(now, windowMs);
+  return function rateLimit(key: string, limit = 5, windowMs = 60_000): boolean {
+    const now = Date.now();
+    evictExpired(now, windowMs);
 
-  // Global cap across all keys — coarse protection against key-cycling spam.
-  if (now - globalTs > windowMs) {
-    globalCount = 0;
-    globalTs = now;
-  }
-  if (globalCount >= GLOBAL_LIMIT) return false;
+    // Global cap across all keys — coarse protection against key-cycling spam.
+    if (now - globalTs > windowMs) {
+      globalCount = 0;
+      globalTs = now;
+    }
+    if (globalCount >= globalLimit) return false;
 
-  const entry = hits.get(key);
-  if (!entry || now - entry.ts > windowMs) {
-    hits.set(key, { count: 1, ts: now });
+    const entry = hits.get(key);
+    if (!entry || now - entry.ts > windowMs) {
+      hits.set(key, { count: 1, ts: now });
+      globalCount += 1;
+      return true;
+    }
+    if (entry.count >= limit) return false;
+    entry.count += 1;
     globalCount += 1;
     return true;
-  }
-  if (entry.count >= limit) return false;
-  entry.count += 1;
-  globalCount += 1;
-  return true;
+  };
 }
+
+/** Shared limiter for the lead forms and webhooks. */
+export const rateLimit = createRateLimiter();
 
 /** Minimal HTML escaping for values interpolated into the email body. */
 export function esc(v: unknown): string {

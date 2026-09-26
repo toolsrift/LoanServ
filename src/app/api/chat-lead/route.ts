@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
-import { applySchema, CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
+import { CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
+import { chatLeadSchema } from "@/lib/chat-schema";
+import { redactPii } from "@/lib/chat-text";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
 import { requestCallback } from "@/lib/voice-agent";
 import { site } from "@/lib/site";
 
 export const runtime = "nodejs";
 
+/**
+ * Callback request from the chat assistant. Same lead path as /api/apply:
+ * validated, consent recorded, emailed to LEAD_TO_EMAIL, then (if configured)
+ * handed to the voice agent. The chat transcript rides along so the advisor
+ * has context — with any pasted identifiers redacted.
+ */
 export async function POST(req: Request) {
   const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
 
-  if (!rateLimit(`apply:${ip}`)) {
+  if (!rateLimit(`chat-lead:${ip}`)) {
     return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
   }
 
@@ -23,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const parsed = applySchema.safeParse(body);
+  const parsed = chatLeadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Please check the form and try again." }, { status: 422 });
   }
@@ -34,21 +40,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const emiRows = (d.existingEmis || [])
-    .filter((r) => r.lender || r.emi || r.outstanding)
-    .map((r) => `<li>${esc(r.lender)} — EMI ₹${esc(r.emi)}, outstanding: ${esc(r.outstanding)}</li>`)
-    .join("");
-
-  // Consent record captured with request metadata so informed consent can be
-  // proven even if email delivery fails.
   const consentRecord = {
     timestamp: new Date().toISOString(),
     ip,
     consentVersion: CONTACT_CONSENT_VERSION,
   };
 
+  const transcript = d.transcript
+    .map(
+      (m) =>
+        `<p style="margin:0 0 8px"><b>${m.role === "user" ? "Visitor" : "Assistant"}:</b> ${esc(
+          redactPii(m.content),
+        ).replace(/\n/g, "<br>")}</p>`,
+    )
+    .join("");
+
   const html = `
-    <h2>New loan enquiry — ${esc(site.name)}</h2>
+    <h2>New chat lead — ${esc(site.name)}</h2>
     <table cellpadding="6" style="border-collapse:collapse">
       <tr><td><b>Name</b></td><td>${esc(d.fullName)}</td></tr>
       <tr><td><b>Mobile</b></td><td>+91 ${esc(d.mobile)}</td></tr>
@@ -59,44 +67,31 @@ export async function POST(req: Request) {
       <tr><td><b>City</b></td><td>${esc(d.city)}</td></tr>
       <tr><td><b>Employment</b></td><td>${esc(d.employment)}</td></tr>
       ${d.monthlySalary ? `<tr><td><b>Monthly salary</b></td><td>₹${esc(d.monthlySalary)}</td></tr>` : ""}
-      ${d.employer ? `<tr><td><b>Employer</b></td><td>${esc(d.employer)}</td></tr>` : ""}
-      ${d.workLocation ? `<tr><td><b>Work location</b></td><td>${esc(d.workLocation)}</td></tr>` : ""}
-      ${d.turnover ? `<tr><td><b>Annual turnover</b></td><td>₹${esc(d.turnover)}</td></tr>` : ""}
-      ${d.businessNature ? `<tr><td><b>Business</b></td><td>${esc(d.businessNature)}</td></tr>` : ""}
-      ${d.businessVintage ? `<tr><td><b>Vintage</b></td><td>${esc(d.businessVintage)} yrs</td></tr>` : ""}
-      ${d.purpose ? `<tr><td><b>Purpose</b></td><td>${esc(d.purpose)}</td></tr>` : ""}
-      ${d.message ? `<tr><td><b>Message</b></td><td>${esc(d.message)}</td></tr>` : ""}
       <tr><td><b>Consent</b></td><td>Yes — user agreed to be contacted, incl. an automated voice callback</td></tr>
       <tr><td><b>Consent version</b></td><td>${esc(consentRecord.consentVersion)}</td></tr>
       <tr><td><b>Consent timestamp</b></td><td>${esc(consentRecord.timestamp)}</td></tr>
       <tr><td><b>Consent IP</b></td><td>${esc(consentRecord.ip)}</td></tr>
     </table>
-    ${emiRows ? `<p><b>Existing EMIs:</b></p><ul>${emiRows}</ul>` : ""}
-    <p style="color:#888;font-size:12px">Submitted via loanserv.in apply form.</p>
+    ${transcript ? `<h3>Chat transcript</h3><div style="font-size:14px">${transcript}</div>` : ""}
+    <p style="color:#888;font-size:12px">Submitted via the loanserv.in chat assistant. Assistant replies are AI-generated.</p>
   `;
 
-  // Strip CR/LF from user free-text before it goes into the Subject header.
-  const subject = sanitizeHeader(`New loan lead: ${d.category} — ${d.fullName} (${d.city})`);
+  const subject = sanitizeHeader(`New chat lead: ${d.category} — ${d.fullName} (${d.city})`);
 
-  // Always keep an audit trail of the consent. NOTE: a console log is NOT durable
-  // — production should replace this with a database/append-only log.
+  // A console log is NOT durable — see the same note in the apply route.
   const logConsent = () =>
-    console.info("CONSENT_RECORD", JSON.stringify({ form: "apply", ...consentRecord }));
+    console.info("CONSENT_RECORD", JSON.stringify({ form: "chat", ...consentRecord }));
 
   try {
     const { sent } = await sendLeadEmail({ subject, html, replyTo: d.email });
-    // If SMTP is unset the lead isn't emailed — never silently lose a consented lead.
     if (!sent) logConsent();
   } catch (err) {
-    // Email failed — log the consent+lead record so it isn't lost, then still
-    // return graceful success (the lead was captured server-side).
-    console.error("[apply] email send failed:", err instanceof Error ? err.message : "unknown");
+    console.error("[chat-lead] email send failed:", err instanceof Error ? err.message : "unknown");
     logConsent();
   }
 
-  // Speed-to-lead: ask the voice agent to call this consented lead back while
-  // they're still on the page. Runs LAST and can never fail the submission —
-  // requestCallback() never throws and no-ops when the agent isn't configured.
+  // Same consent text as /apply (version 2.0 covers the AI voice callback), so
+  // the same speed-to-lead call applies. Runs last; never throws.
   const voice = await requestCallback({
     fullName: d.fullName,
     mobile: d.mobile,
@@ -107,14 +102,11 @@ export async function POST(req: Request) {
     city: d.city,
     employment: d.employment,
     monthlySalary: d.monthlySalary,
-    employer: d.employer,
-    purpose: d.purpose,
     consentVersion: consentRecord.consentVersion,
     consentTimestamp: consentRecord.timestamp,
   });
-  // Non-PII trace only: the reason, never the lead.
   if (!voice.queued && voice.reason !== "not-configured") {
-    console.info("[apply] voice callback not queued:", voice.reason);
+    console.info("[chat-lead] voice callback not queued:", voice.reason);
   }
 
   return NextResponse.json({ ok: true });

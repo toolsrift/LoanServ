@@ -173,7 +173,7 @@ export default function AboutPage() {
               <h2 className="font-display text-display-sm text-ink">Where to find us</h2>
               <p className="mt-2 max-w-xl text-slate">
                 We work out of a physical office in Nizampet, Hyderabad — so you can talk to a real
-                person, not a chatbot, about a decision this important.
+                person, not just a chatbot, about a decision this important.
               </p>
               <address className="mt-4 not-italic text-slate">
                 <span className="block font-medium text-ink">{site.name}</span>

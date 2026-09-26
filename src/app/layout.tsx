@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
 import { Analytics, AutoAds } from "@/components/seo/Analytics";
+import { isChatAgentEnabled } from "@/lib/chat-agent";
 
 // Display face — used with restraint for editorial personality.
 const fraunces = Fraunces({
@@ -82,7 +83,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <OrganizationJsonLd />
         <Analytics />
         <AutoAds />
-        <SiteProviders>
+        <SiteProviders chatEnabled={isChatAgentEnabled()}>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

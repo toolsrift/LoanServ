@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, NativeSelect, Textarea } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ContactConsentText } from "@/components/apply/ContactConsentText";
 import {
   applySchema,
   LOAN_CATEGORIES,
@@ -384,14 +385,7 @@ export function ApplyForm({
             onCheckedChange={(v) => set("consent", Boolean(v))}
             className="mt-0.5"
           />
-          <span className="text-sm text-slate">
-            I agree to be contacted by LoanServ regarding my loan requirement — by phone, WhatsApp
-            or email, including an automated AI voice callback — and accept the{" "}
-            <Link href="/legal/privacy-policy" className="text-evergreen underline" target="_blank">
-              Privacy Policy
-            </Link>
-            . I understand LoanServ is a DSA facilitator, not a lender.
-          </span>
+          <ContactConsentText />
         </label>
         {errors.consent && <p className="mt-1 text-xs font-medium text-red-600">{errors.consent}</p>}
       </div>

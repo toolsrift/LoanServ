@@ -57,9 +57,11 @@ quality matters more than English polish. Dograh is built on
 [Pipecat](https://github.com/pipecat-ai/pipecat), which ships first-class Sarvam
 services — so one `SARVAM_API_KEY` covers STT, TTS **and** the LLM.
 
-> **The Sarvam key does NOT go in this repo's `.env.local`.** It belongs in the
-> Dograh container's environment. This Next.js app never talks to Sarvam; it only
-> tells Dograh "call this lead" and receives the result.
+> **The voice agent's Sarvam key does NOT go in this repo's `.env.local`.** It
+> belongs in the Dograh container's environment: for calls, this Next.js app only
+> tells Dograh "call this lead" and receives the result. (The website chat
+> assistant is different: it calls Sarvam directly with its own key in this app's
+> env. Use a separate key for each, see [CHAT-AGENT.md](CHAT-AGENT.md).)
 
 ```bash
 # in Dograh's .env / docker-compose environment, NOT LoanServ's
@@ -101,8 +103,8 @@ repo, so this block is the canonical copy):
 
 ```bash
 # All four + the flag must be set, or the seam no-ops and /apply behaves
-# exactly as it did before. Provider keys (SARVAM_API_KEY, Twilio/Plivo, ...)
-# do NOT go here — they live in the Dograh container's env. See §3.
+# exactly as it did before. The voice agent's provider keys (Sarvam, Twilio/
+# Plivo, ...) do NOT go here — they live in the Dograh container's env. See §3.
 VOICE_AGENT_ENABLED=false
 DOGRAH_API_URL=http://localhost:8000
 DOGRAH_API_KEY=
