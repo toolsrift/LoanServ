@@ -23,14 +23,22 @@ function buildCsp(): string {
   const imgSrc = ["'self'", "data:", "https:"];
 
   if (gaEnabled || googleAdsEnabled) {
-    scriptSrc.push("https://www.googletagmanager.com");
-    connectSrc.push("https://www.googletagmanager.com");
+    scriptSrc.push("https://*.googletagmanager.com");
+    connectSrc.push("https://*.googletagmanager.com");
   }
   if (gaEnabled) {
-    // GA4 sends hits to regional hosts (e.g. region1.google-analytics.com), not
-    // just www — without the wildcards every event is silently blocked.
+    // Google's documented GA4 host list. Hits go to regional hosts (e.g.
+    // region1.google-analytics.com), not just www — without the wildcards every
+    // event is silently blocked. The doubleclick/google hosts are used when
+    // Google signals (demographics) is turned on in GA.
     scriptSrc.push("https://*.google-analytics.com");
-    connectSrc.push("https://*.google-analytics.com", "https://*.analytics.google.com");
+    connectSrc.push(
+      "https://*.google-analytics.com",
+      "https://*.analytics.google.com",
+      "https://*.g.doubleclick.net",
+      "https://*.google.com",
+      "https://*.google.co.in",
+    );
   }
   if (googleAdsEnabled) {
     // Google Ads conversion tracking (Google's documented CSP host list).
