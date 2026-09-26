@@ -23,7 +23,8 @@ export function normalizeMobile(v: string): string {
   return v.replace(/\D/g, "").slice(-10);
 }
 
-async function rest(
+/** Supabase REST call with the service key. Returns null when unconfigured or unreachable. Never throws. */
+export async function supabaseRest(
   path: string,
   { prefer, ...init }: Omit<RequestInit, "headers" | "signal"> & { prefer?: string } = {},
 ): Promise<Response | null> {
@@ -47,7 +48,7 @@ async function rest(
 }
 
 export type LeadRecord = {
-  form: "apply" | "chat" | "cibil";
+  form: "apply" | "chat" | "cibil" | "partner" | "whatsapp";
   fullName: string;
   mobile: string;
   email: string;
@@ -67,7 +68,7 @@ export type LeadRecord = {
 /** Saves a lead with its consent record. Returns whether it was stored. */
 export async function saveLead(lead: LeadRecord): Promise<{ saved: boolean; reason?: string }> {
   if (!isLeadStoreConfigured()) return { saved: false, reason: "not-configured" };
-  const res = await rest("leads", {
+  const res = await supabaseRest("leads", {
     method: "POST",
     prefer: "return=minimal",
     body: JSON.stringify({
@@ -94,7 +95,7 @@ export async function saveLead(lead: LeadRecord): Promise<{ saved: boolean; reas
 
 /** true/false when known; null when the list can't be checked (unconfigured or error). */
 export async function isDoNotCall(mobile: string): Promise<boolean | null> {
-  const res = await rest(`do_not_call?mobile=eq.${normalizeMobile(mobile)}&select=mobile&limit=1`);
+  const res = await supabaseRest(`do_not_call?mobile=eq.${normalizeMobile(mobile)}&select=mobile&limit=1`);
   if (!res || !res.ok) return null;
   const rows = (await res.json().catch(() => null)) as unknown[] | null;
   return Array.isArray(rows) ? rows.length > 0 : null;
@@ -104,7 +105,7 @@ export async function isDoNotCall(mobile: string): Promise<boolean | null> {
 export async function addDoNotCall(mobile: string, reason: string, source: string): Promise<boolean> {
   const m = normalizeMobile(mobile);
   if (m.length !== 10) return false;
-  const res = await rest("do_not_call", {
+  const res = await supabaseRest("do_not_call", {
     method: "POST",
     prefer: "resolution=ignore-duplicates,return=minimal",
     body: JSON.stringify({ mobile: m, reason, source }),
@@ -119,7 +120,7 @@ export async function saveVoiceResult(r: {
   disposition: string;
   payload: Record<string, string>;
 }): Promise<boolean> {
-  const res = await rest("voice_calls", {
+  const res = await supabaseRest("voice_calls", {
     method: "POST",
     prefer: "resolution=ignore-duplicates,return=minimal",
     body: JSON.stringify({
