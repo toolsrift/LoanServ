@@ -99,8 +99,10 @@ gitignored, so this block is the canonical list:
 
 ```bash
 # The flag + the three DOGRAH_* values must all be set, or the seam no-ops and
-# leads behave exactly as before. Provider keys (Sarvam, Exotel/Plivo, ...) live
-# in Dograh, not here.
+# leads behave exactly as before. Calls ALSO need the lead database
+# (SUPABASE_*, see OPERATIONS.md): its do-not-call list is checked before every
+# call, and no list means no call. Provider keys (Sarvam, Exotel/Plivo, ...)
+# live in Dograh, not here.
 VOICE_AGENT_ENABLED=false
 DOGRAH_API_URL=https://api.dograh.com          # or https://<your-dograh-domain>
 DOGRAH_API_KEY=                                # Dograh → Settings → API keys (sent as X-API-Key)
@@ -211,7 +213,7 @@ your provider what they currently enforce.
 **TRAI / DLT**
 - [ ] Register as a Principal Entity; register the header and the call-script template.
 - [ ] Complete KYC with Exotel/Plivo and rent a **140-series** number.
-- [ ] Scrub every number against NCPR/DND **at dial time**, not at import time.
+- [ ] Scrub every number against NCPR/DND **at dial time**, not at import time. (The site's own `do_not_call` list, checked before every call, covers people who opted out *with you*; it doesn't replace the national NCPR scrub, which your telephony provider or DLT platform handles.)
 - [ ] Wire DCA (127-series) consent capture; respect the ~7-day validity.
 
 **RBI fair practice (lending)**
@@ -222,7 +224,7 @@ your provider what they currently enforce.
 **DPDP**
 - [ ] Set a retention period for recordings/transcripts and actually delete them.
 - [x] `/legal/privacy-policy` has an "Automated Voice Callback" section (recording, processors, opt-out).
-- [ ] Replace the `CONSENT_RECORD` console log with a durable append-only store (already flagged as a TODO in the apply route).
+- [x] Durable consent records: every lead is stored with its consent in Supabase (`OPERATIONS.md`); the console log remains only as a last-resort fallback.
 
 **Safe lane:** calling a lead who *just* submitted the form, with consent recorded,
 from a registered 140 number. **Unsafe lane:** dialling purchased or scraped lists —

@@ -32,6 +32,9 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `NEXT_PUBLIC_GOOGLE_BUSINESS_URL` | Your Google Business Profile URL (optional) | Structured data `sameAs` |
 | `NEXT_PUBLIC_GOOGLE_ADS_ID` / `NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL` | `AW-…` + conversion label (only when running Google Ads) | Lead conversions in Google Ads |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Pixel ID, digits only (only when running Meta ads) | Lead conversions in Meta |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | From your Supabase project (see `OPERATIONS.md`) | Lead database, consent records, do-not-call list |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | From @BotFather + your advisors' group | Instant new-lead alerts |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | From your Upstash Redis database | Site-wide rate limits + daily chat cap |
 
 > The site runs fine with the optional ones blank — forms still work (leads get
 > logged), no ads load, no analytics. Fill them in when ready.
