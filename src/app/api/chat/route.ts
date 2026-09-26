@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRateLimiter } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
 import { answer, isChatAgentEnabled } from "@/lib/chat-agent";
 import { chatRequestSchema, type ChatResponse } from "@/lib/chat-schema";
 
@@ -9,6 +10,13 @@ export const maxDuration = 30;
 
 // Separate from the lead-form limiter so chat volume can never block /apply.
 const chatRateLimit = createRateLimiter({ globalLimit: 600 });
+const chatDailyLimit = createRateLimiter({ globalLimit: Number.MAX_SAFE_INTEGER });
+
+/** Site-wide cap on assistant replies per day — a hard ceiling on Sarvam spend. */
+function dailyCap(): number {
+  const n = Number(process.env.CHAT_DAILY_LIMIT);
+  return Number.isInteger(n) && n > 0 ? n : 3000;
+}
 
 const UNAVAILABLE =
   "The assistant is unavailable right now. You can still request a callback, or use the Apply form.";
@@ -20,8 +28,12 @@ export async function POST(req: Request) {
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-  if (!chatRateLimit(`chat:${ip}`, 20)) {
+  if (!(await allowRequest(chatRateLimit, `chat:${ip}`, 20))) {
     return NextResponse.json({ error: "You're sending messages too fast. Please wait a moment." }, { status: 429 });
+  }
+  if (!(await allowRequest(chatDailyLimit, "chat:all", dailyCap(), 86_400_000))) {
+    console.warn("[chat] daily cap reached");
+    return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }
 
   let body: unknown;

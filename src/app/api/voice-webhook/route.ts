@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
 import { verifyWebhookAuth } from "@/lib/voice-agent";
+import { addDoNotCall, saveVoiceResult } from "@/lib/lead-store";
+import { sendAlert } from "@/lib/alerts";
 
 export const runtime = "nodejs";
 
@@ -110,6 +112,26 @@ export async function POST(req: Request) {
   `;
 
   const subject = sanitizeHeader(`${doNotCall ? "DO NOT CALL — " : ""}Voice callback (${disposition}): ${name}`);
+
+  // Opt-outs and wrong numbers go on the do-not-call list, which requestCallback
+  // checks before every future call. Store + alert run alongside the email.
+  const optOut = doNotCall || /wrong[_\s-]?number/i.test(disposition);
+  const alert =
+    doNotCall || /^(qualified|callback_requested)$/i.test(disposition)
+      ? [
+          `${doNotCall ? "⛔ DO NOT CALL" : "📞 Voice call"}: ${name} (${disposition})`,
+          p.phone_number,
+          p.preferred_callback_time && `Wants a call: ${p.preferred_callback_time}`,
+          p.summary,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
+  await Promise.all([
+    optOut && p.phone_number ? addDoNotCall(p.phone_number, disposition, "voice-agent") : false,
+    callId ? saveVoiceResult({ callId, mobile: p.phone_number || "", disposition, payload: p }) : false,
+    alert ? sendAlert(alert) : false,
+  ]);
 
   try {
     const { sent } = await sendLeadEmail({ subject, html });

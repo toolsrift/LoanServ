@@ -8,14 +8,13 @@ import { ApplyButton } from "@/components/apply/ApplyButton";
 import { FaqSection } from "@/components/sections/FaqSection";
 import { CtaBlock, RelatedLinks } from "@/components/sections/CtaBlock";
 import { LoanCalcTabs } from "@/components/calculators/LoanCalcTabs";
-import { getIcon } from "@/lib/icons";
+import { LoanIcon } from "@/lib/icons";
 import { formatINR, formatPercent } from "@/lib/format";
 import { getLoan } from "@/data/loans";
 import { getCalculator } from "@/data/calculators";
 import type { LoanContent } from "@/data/types";
 
 export function LoanPageTemplate({ loan }: { loan: LoanContent }) {
-  const Icon = getIcon(loan.icon);
   const related = loan.related.map(getLoan).filter(Boolean) as LoanContent[];
   const calcLinks = loan.calculators
     .map((slug) => getCalculator(slug))
@@ -45,7 +44,7 @@ export function LoanPageTemplate({ loan }: { loan: LoanContent }) {
           <div className="grid gap-10 py-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:py-20">
             <div className="animate-fade-up">
               <span className="inline-flex items-center gap-2 rounded-full border border-paper/15 bg-paper/[0.06] px-3 py-1.5 text-xs font-medium text-mint">
-                <Icon className="h-4 w-4" /> {loan.shortName}
+                <LoanIcon name={loan.icon} className="h-4 w-4" /> {loan.shortName}
               </span>
               <h1 className="mt-5 text-display-xl text-paper">{loan.name}</h1>
               <p className="mt-4 max-w-xl text-lg text-paper/75">{loan.tagline}</p>

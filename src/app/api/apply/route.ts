@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { applySchema, CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
-import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
-import { requestCallback } from "@/lib/voice-agent";
+import { rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
+import { deliverLead, leadAlertText } from "@/lib/lead-delivery";
+import { channelLabel } from "@/lib/attribution";
 import { site } from "@/lib/site";
 import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
@@ -13,7 +15,7 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "unknown";
 
-  if (!rateLimit(`apply:${ip}`)) {
+  if (!(await allowRequest(rateLimit, `apply:${ip}`))) {
     return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
   }
 
@@ -80,44 +82,52 @@ export async function POST(req: Request) {
   // Strip CR/LF from user free-text before it goes into the Subject header.
   const subject = sanitizeHeader(`New loan lead: ${d.category} — ${d.fullName} (${d.city})${leadSourceTag(d.attribution)}`);
 
-  // Always keep an audit trail of the consent. NOTE: a console log is NOT durable
-  // — production should replace this with a database/append-only log.
-  const logConsent = () =>
-    console.info("CONSENT_RECORD", JSON.stringify({ form: "apply", ...consentRecord }));
-
-  try {
-    const { sent } = await sendLeadEmail({ subject, html, replyTo: d.email });
-    // If SMTP is unset the lead isn't emailed — never silently lose a consented lead.
-    if (!sent) logConsent();
-  } catch (err) {
-    // Email failed — log the consent+lead record so it isn't lost, then still
-    // return graceful success (the lead was captured server-side).
-    console.error("[apply] email send failed:", err instanceof Error ? err.message : "unknown");
-    logConsent();
-  }
-
-  // Speed-to-lead: ask the voice agent to call this consented lead back while
-  // they're still on the page. Runs LAST and can never fail the submission —
-  // requestCallback() never throws and no-ops when the agent isn't configured.
-  const voice = await requestCallback({
-    fullName: d.fullName,
-    mobile: d.mobile,
-    email: d.email,
-    category: d.category,
-    loanType: d.loanType,
-    amount: d.amount,
-    city: d.city,
-    employment: d.employment,
-    monthlySalary: d.monthlySalary,
-    employer: d.employer,
-    purpose: d.purpose,
-    consentVersion: consentRecord.consentVersion,
-    consentTimestamp: consentRecord.timestamp,
+  const channel = channelLabel(d.attribution);
+  await deliverLead({
+    record: {
+      form: "apply",
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      channel,
+      attribution: d.attribution,
+      details: {
+        monthlySalary: d.monthlySalary,
+        employer: d.employer,
+        workLocation: d.workLocation,
+        turnover: d.turnover,
+        businessNature: d.businessNature,
+        businessVintage: d.businessVintage,
+        existingEmis: d.hasExistingEmis ? d.existingEmis : [],
+        purpose: d.purpose,
+        message: d.message,
+      },
+      consent: { version: consentRecord.consentVersion, timestamp: consentRecord.timestamp, ip },
+    },
+    email: { subject, html, replyTo: d.email },
+    alertText: leadAlertText({ form: "apply", ...d, channel }),
+    // Consent v2.0 covers the automated voice callback.
+    voice: {
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      monthlySalary: d.monthlySalary,
+      employer: d.employer,
+      purpose: d.purpose,
+      consentVersion: consentRecord.consentVersion,
+      consentTimestamp: consentRecord.timestamp,
+    },
   });
-  // Non-PII trace only: the reason, never the lead.
-  if (!voice.queued && voice.reason !== "not-configured") {
-    console.info("[apply] voice callback not queued:", voice.reason);
-  }
 
   return NextResponse.json({ ok: true });
 }

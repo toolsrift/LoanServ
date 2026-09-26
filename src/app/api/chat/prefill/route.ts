@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRateLimiter } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
 import { extractLeadPrefill, isChatAgentEnabled } from "@/lib/chat-agent";
 import { chatTranscriptSchema } from "@/lib/chat-schema";
 
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-  if (!prefillRateLimit(`prefill:${ip}`, 5)) return NextResponse.json({});
+  if (!(await allowRequest(prefillRateLimit, `prefill:${ip}`, 5))) return NextResponse.json({});
 
   const body: unknown = await req.json().catch(() => null);
   const parsed = chatTranscriptSchema.safeParse(body);

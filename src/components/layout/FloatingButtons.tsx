@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ArrowUp, MessageCircle, Sparkles } from "lucide-react";
 import { useApply } from "@/components/apply/apply-context";
-import { useChatAgent } from "@/components/chat/chat-context";
+import { CHAT_LAUNCHER_ID, useChatAgent } from "@/components/chat/chat-context";
 import { site } from "@/lib/site";
 import { trackEvent } from "@/lib/track";
 
@@ -17,7 +17,7 @@ const WHATSAPP_URL = `https://wa.me/${site.whatsapp.replace(/\D/g, "")}?text=${e
  */
 export function FloatingButtons() {
   const { openApply } = useApply();
-  const chat = useChatAgent();
+  const { enabled: chatEnabled, open: chatOpen, openChat } = useChatAgent();
   const [showTop, setShowTop] = React.useState(false);
 
   React.useEffect(() => {
@@ -40,16 +40,16 @@ export function FloatingButtons() {
           <ArrowUp className="h-5 w-5" />
         </button>
       )}
-      {chat.enabled && (
+      {chatEnabled && (
         <button
-          ref={chat.launcherRef}
+          id={CHAT_LAUNCHER_ID}
           onClick={() => {
-            chat.openChat();
+            openChat();
             trackEvent("chat_open", { page: window.location.pathname });
           }}
           aria-label="Chat with the LoanServ AI assistant"
           title="Ask our AI assistant"
-          aria-expanded={chat.open}
+          aria-expanded={chatOpen}
           className="grid h-13 w-13 place-items-center rounded-full bg-evergreen text-white shadow-lift transition-transform hover:scale-105"
         >
           <Sparkles className="h-6 w-6" />

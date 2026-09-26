@@ -8,7 +8,7 @@ import { ApplyButton } from "@/components/apply/ApplyButton";
 import { FaqSection } from "@/components/sections/FaqSection";
 import { CtaBlock } from "@/components/sections/CtaBlock";
 import { LoanCalcTabs } from "@/components/calculators/LoanCalcTabs";
-import { getIcon } from "@/lib/icons";
+import { LoanIcon } from "@/lib/icons";
 import { formatINR, formatPercent } from "@/lib/format";
 import { buildMetadata } from "@/lib/seo";
 import { loanCityParams, getLoanCity } from "@/lib/loan-city";
@@ -39,7 +39,6 @@ export default async function LoanCityPage({
   const data = getLoanCity(loanType, city);
   if (!data) notFound();
   const { loan, city: cityData, title, intro } = data;
-  const Icon = getIcon(loan.icon);
 
   return (
     <>
@@ -70,7 +69,7 @@ export default async function LoanCityPage({
             </div>
             <Card className="p-6">
               <div className="mb-3 flex items-center gap-2 text-evergreen">
-                <Icon className="h-5 w-5" />
+                <LoanIcon name={loan.icon} className="h-5 w-5" />
                 <p className="font-display text-lg text-ink">{loan.name}</p>
               </div>
               <dl className="space-y-3">

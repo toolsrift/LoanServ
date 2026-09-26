@@ -71,6 +71,10 @@ Home · `/loans` + `/loans/[slug]` · `/balance-transfer` (+`[slug]`) · `/calcu
 
 Every lead email names its source channel (campaign, partner `?ref=` code, referring site), form submits and phone/WhatsApp clicks are GA4 events, and Google Ads / Meta Pixel conversion tags switch on by env var. The growth playbook — Google Business Profile, partner links, ads — is in [LEADS.md](LEADS.md).
 
+## Operations
+
+Lead database + do-not-call list (Supabase), instant lead alerts (Telegram), site-wide rate limiting (Upstash), CI and tests — setup in [OPERATIONS.md](OPERATIONS.md). Run the tests with `npm test`.
+
 ## AI agents (both off by default)
 
 - **Chat assistant** — floating chat that answers loan questions from the site's own content via Sarvam and collects callback leads (`/api/chat`, `/api/chat-lead`). Enable with `CHAT_AGENT_ENABLED=true` + `SARVAM_API_KEY`. See [CHAT-AGENT.md](CHAT-AGENT.md).

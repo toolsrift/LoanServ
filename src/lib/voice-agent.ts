@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { isDoNotCall, isLeadStoreConfigured } from "./lead-store";
 
 /**
  * Dograh voice-agent bridge — "speed to lead" callbacks.
@@ -130,13 +131,20 @@ export function buildCallPayload(lead: VoiceCallbackLead) {
 }
 
 /**
- * Asks Dograh to call a consented lead back. NEVER throws and never blocks lead
- * capture — the caller treats a failure here as a no-op and the lead still goes
- * out by email.
+ * Asks Dograh to call a consented lead back — only inside the RBI calling
+ * window and only if the number isn't on the do-not-call list. NEVER throws and
+ * never blocks lead capture: the lead still goes out by email regardless.
  */
 export async function requestCallback(lead: VoiceCallbackLead): Promise<VoiceCallbackResult> {
   if (!isVoiceAgentEnabled()) return { queued: false, reason: "not-configured" };
   if (!isWithinCallingWindow()) return { queued: false, reason: "outside-calling-window" };
+
+  // Never call anyone who asked not to be called. That needs the lead store's
+  // do-not-call list, so no store (or no answer from it) means no call.
+  if (!isLeadStoreConfigured()) return { queued: false, reason: "dnc-list-not-configured" };
+  const dnc = await isDoNotCall(lead.mobile);
+  if (dnc === true) return { queued: false, reason: "do-not-call" };
+  if (dnc === null) return { queued: false, reason: "dnc-check-failed" };
 
   const base = env("DOGRAH_API_URL").replace(/\/$/, "");
   const url = `${base}/api/v1/public/agent/${encodeURIComponent(env("DOGRAH_TRIGGER_UUID"))}`;

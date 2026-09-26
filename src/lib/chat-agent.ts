@@ -2,7 +2,7 @@ import "server-only";
 import { site } from "./site";
 import { sarvamChat, hasSarvamKey, type SarvamMessage } from "./sarvam";
 import { searchKnowledge, knownSitePaths, pageDirectory } from "./chat-knowledge";
-import { cleanReply, extractJsonObject, redactPii } from "./chat-text";
+import { cleanReply, extractJsonObject, isMostlyIndicScript, redactPii, stripThinking } from "./chat-text";
 import { LOAN_CATEGORIES, LOAN_TYPES, CITIES, EMPLOYMENT_TYPES } from "./apply-schema";
 import {
   leadPrefillSchema,
@@ -101,13 +101,37 @@ function buildReference(query: string): { reference: string; sources: ChatSource
   return { reference: parts.join("\n\n"), sources: sources.slice(0, 3) };
 }
 
+/**
+ * Retrieval runs over English content, so a question typed in an Indic script
+ * is first turned into a short English search query. On any failure the
+ * original text is used — the answer is still generated, just less grounded.
+ */
+async function englishQuery(query: string): Promise<string> {
+  if (!isMostlyIndicScript(query)) return query;
+  const res = await sarvamChat({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Translate the user's question into a short English search query about loans or credit (at most 12 words). Reply with the query only.",
+      },
+      { role: "user", content: redactPii(query).slice(0, 1000) },
+    ],
+    maxTokens: 60,
+    temperature: 0,
+  });
+  if (!res.ok) return query;
+  const english = stripThinking(res.text).split("\n")[0].replace(/^["'\s]+|["'\s]+$/g, "");
+  return english ? `${english} ${query}` : query;
+}
+
 export type AnswerResult = ({ ok: true } & ChatResponse) | { ok: false; reason: string };
 
 export async function answer(messages: ChatMessage[]): Promise<AnswerResult> {
   const history = prepareHistory(messages);
   if (!history.length) return { ok: false, reason: "empty-history" };
 
-  const { reference, sources } = buildReference(retrievalQuery(messages));
+  const { reference, sources } = buildReference(await englishQuery(retrievalQuery(messages)));
   const res = await sarvamChat({
     messages: [{ role: "system", content: systemPrompt(reference) }, ...history],
   });

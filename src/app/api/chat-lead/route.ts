@@ -2,24 +2,26 @@ import { NextResponse } from "next/server";
 import { CONTACT_CONSENT_VERSION } from "@/lib/apply-schema";
 import { chatLeadSchema } from "@/lib/chat-schema";
 import { redactPii } from "@/lib/chat-text";
-import { sendLeadEmail, rateLimit, esc, sanitizeHeader } from "@/lib/email";
-import { requestCallback } from "@/lib/voice-agent";
+import { rateLimit, esc, sanitizeHeader } from "@/lib/email";
+import { allowRequest } from "@/lib/rate-limit";
+import { deliverLead, leadAlertText } from "@/lib/lead-delivery";
+import { channelLabel } from "@/lib/attribution";
 import { site } from "@/lib/site";
 import { leadSourceHtml, leadSourceTag } from "@/lib/lead-source";
 
 export const runtime = "nodejs";
 
 /**
- * Callback request from the chat assistant. Same lead path as /api/apply:
- * validated, consent recorded, emailed to LEAD_TO_EMAIL, then (if configured)
- * handed to the voice agent. The chat transcript rides along so the advisor
+ * Callback request from the chat assistant. Same lead path as /api/apply
+ * (lib/lead-delivery): validated, stored with its consent record, emailed,
+ * alerted, then (if configured) handed to the voice agent. The chat transcript rides along so the advisor
  * has context — with any pasted identifiers redacted.
  */
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
 
-  if (!rateLimit(`chat-lead:${ip}`)) {
+  if (!(await allowRequest(rateLimit, `chat-lead:${ip}`))) {
     return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
   }
 
@@ -80,36 +82,44 @@ export async function POST(req: Request) {
 
   const subject = sanitizeHeader(`New chat lead: ${d.category} — ${d.fullName} (${d.city})${leadSourceTag(d.attribution)}`);
 
-  // A console log is NOT durable — see the same note in the apply route.
-  const logConsent = () =>
-    console.info("CONSENT_RECORD", JSON.stringify({ form: "chat", ...consentRecord }));
-
-  try {
-    const { sent } = await sendLeadEmail({ subject, html, replyTo: d.email });
-    if (!sent) logConsent();
-  } catch (err) {
-    console.error("[chat-lead] email send failed:", err instanceof Error ? err.message : "unknown");
-    logConsent();
-  }
-
-  // Same consent text as /apply (version 2.0 covers the AI voice callback), so
-  // the same speed-to-lead call applies. Runs last; never throws.
-  const voice = await requestCallback({
-    fullName: d.fullName,
-    mobile: d.mobile,
-    email: d.email,
-    category: d.category,
-    loanType: d.loanType,
-    amount: d.amount,
-    city: d.city,
-    employment: d.employment,
-    monthlySalary: d.monthlySalary,
-    consentVersion: consentRecord.consentVersion,
-    consentTimestamp: consentRecord.timestamp,
+  const channel = channelLabel(d.attribution);
+  await deliverLead({
+    record: {
+      form: "chat",
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      channel,
+      attribution: d.attribution,
+      details: {
+        monthlySalary: d.monthlySalary,
+        // Same redaction as the email copy.
+        transcript: d.transcript.map((m) => ({ role: m.role, content: redactPii(m.content) })),
+      },
+      consent: { version: consentRecord.consentVersion, timestamp: consentRecord.timestamp, ip },
+    },
+    email: { subject, html, replyTo: d.email },
+    alertText: leadAlertText({ form: "chat", ...d, channel }),
+    // Same consent text as /apply (v2.0 covers the AI voice callback).
+    voice: {
+      fullName: d.fullName,
+      mobile: d.mobile,
+      email: d.email,
+      category: d.category,
+      loanType: d.loanType,
+      amount: d.amount,
+      city: d.city,
+      employment: d.employment,
+      monthlySalary: d.monthlySalary,
+      consentVersion: consentRecord.consentVersion,
+      consentTimestamp: consentRecord.timestamp,
+    },
   });
-  if (!voice.queued && voice.reason !== "not-configured") {
-    console.info("[chat-lead] voice callback not queued:", voice.reason);
-  }
 
   return NextResponse.json({ ok: true });
 }

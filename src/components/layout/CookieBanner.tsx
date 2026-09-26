@@ -3,23 +3,33 @@
 import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CONSENT_KEY, setConsent, type ConsentChoice } from "@/lib/consent";
+import { CONSENT_EVENT, CONSENT_KEY, setConsent, type ConsentChoice } from "@/lib/consent";
+
+// The banner shows until a choice is stored. Read straight from localStorage
+// (an external store) so there's no setState-in-effect and no hydration
+// mismatch: the server snapshot is "hidden".
+function subscribe(onChange: () => void) {
+  window.addEventListener(CONSENT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(CONSENT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+function needsChoice(): boolean {
+  try {
+    return !localStorage.getItem(CONSENT_KEY);
+  } catch {
+    return false; // storage blocked — stay hidden
+  }
+}
 
 /** Lightweight cookie notice (required for AdSense/analytics disclosure). */
 export function CookieBanner() {
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    try {
-      if (!localStorage.getItem(CONSENT_KEY)) setVisible(true);
-    } catch {
-      /* storage blocked — stay hidden */
-    }
-  }, []);
+  const visible = React.useSyncExternalStore(subscribe, needsChoice, () => false);
 
   function decide(value: ConsentChoice) {
-    setConsent(value);
-    setVisible(false);
+    setConsent(value); // stores the choice and fires CONSENT_EVENT, which hides the banner
   }
 
   if (!visible) return null;
