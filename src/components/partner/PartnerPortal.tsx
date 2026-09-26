@@ -30,6 +30,23 @@ const blank = {
 
 const headers = (c: Creds) => ({ "content-type": "application/json", "x-partner-code": c.code, "x-partner-key": c.key });
 
+type MeResponse = { partner: { code: string; name: string }; referrals: Row[] };
+
+/** Checks credentials and loads the partner's referrals. No React state — callers apply the result. */
+async function fetchMe(c: Creds): Promise<{ ok: true; data: MeResponse } | { ok: false; error: string }> {
+  const res = await fetch("/api/partner/me", { method: "POST", headers: headers(c) }).catch(() => null);
+  const data = res ? await res.json().catch(() => ({})) : {};
+  return res?.ok ? { ok: true, data } : { ok: false, error: data?.error || "Couldn't sign in. Please try again." };
+}
+
+function saveCreds(c: Creds) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
+  } catch {
+    /* storage blocked — just stay signed in for this visit */
+  }
+}
+
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-saffron/15 text-[#8a5a04]",
   confirmed: "bg-mint/15 text-evergreen",
@@ -51,27 +68,26 @@ export function PartnerPortal() {
   const [result, setResult] = React.useState<{ confirmUrl: string; whatsappUrl: string; message: string } | null>(null);
   const [copied, setCopied] = React.useState(false);
 
-  const signIn = React.useCallback(async (c: Creds, remember: boolean) => {
-    const res = await fetch("/api/partner/me", { method: "POST", headers: headers(c) }).catch(() => null);
-    const data = res ? await res.json().catch(() => ({})) : {};
-    if (!res?.ok) {
-      setLoginError(data?.error || "Couldn't sign in. Please try again.");
-      setBusy(false);
+  const apply = React.useCallback((c: Creds, r: Awaited<ReturnType<typeof fetchMe>>) => {
+    setBusy(false);
+    if (!r.ok) {
+      setLoginError(r.error);
       return;
     }
-    try {
-      if (remember) localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
-    } catch {
-      /* storage blocked — just stay signed in for this visit */
-    }
     setCreds(c);
-    setPartnerName(data.partner.name);
-    setRows(data.referrals);
+    setPartnerName(r.data.partner.name);
+    setRows(r.data.referrals);
     setLoginError("");
-    setBusy(false);
   }, []);
 
-  // Sign back in with saved credentials, if any.
+  async function signIn(c: Creds, remember: boolean) {
+    const r = await fetchMe(c);
+    if (r.ok && remember) saveCreds(c);
+    apply(c, r);
+  }
+
+  // Sign back in with saved credentials, if any. State is only set in the
+  // promise callback, never synchronously in the effect.
   React.useEffect(() => {
     let saved: Creds | null = null;
     try {
@@ -79,8 +95,9 @@ export function PartnerPortal() {
     } catch {
       saved = null;
     }
-    if (saved?.code && saved?.key) void signIn(saved, true);
-  }, [signIn]);
+    const c = saved;
+    if (c?.code && c?.key) fetchMe(c).then((r) => apply(c, r));
+  }, [apply]);
 
   function signOut() {
     try {
