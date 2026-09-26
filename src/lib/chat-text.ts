@@ -99,6 +99,21 @@ export function searchIndex(index: KnowledgeIndex, query: string, k = 4): Search
   return hits.sort((x, y) => y.score - x.score).slice(0, k);
 }
 
+/**
+ * True when the text is mostly in an Indic script (Devanagari, Bengali,
+ * Gurmukhi, Gujarati, Odia, Tamil, Telugu, Kannada, Malayalam). The site's
+ * content is English, so such queries need translating before retrieval.
+ * Romanised Hindi/Telugu ("loan ke liye documents") is Latin script and
+ * already shares enough keywords with the content.
+ */
+export function isMostlyIndicScript(text: string): boolean {
+  const letters = text.match(/\p{L}/gu) || [];
+  if (!letters.length) return false;
+  // Letters only: Indic vowel signs are marks (\p{M}), not letters, and would inflate the count.
+  const indic = text.match(/(?=\p{L})[\u0900-\u0D7F]/gu) || [];
+  return indic.length / letters.length > 0.5;
+}
+
 // ---------------------------------------------------------------------------
 // MDX → plain-text chunks
 // ---------------------------------------------------------------------------
