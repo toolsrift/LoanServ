@@ -57,6 +57,11 @@ whether they work.
 - [ ] Post an update weekly (a blog post, a rate-change explainer).
 
 ### Referral partners — steady volume
+
+Partners can either share a tracked link (below) or submit customers directly
+in the **partner portal** (`/partner-portal`, OPERATIONS.md §5). With the
+portal, the customer confirms consent on a one-time link before anyone calls.
+
 Give every partner their own link. Any lead that arrives through it within 30
 days is credited to them in the email subject (`[Partner: <code>]`):
 
@@ -104,6 +109,8 @@ answers from the same content, so every post also improves the assistant.
       Point each ad at the matching loan or city page, not the homepage.
 
 ### Meta (Facebook / Instagram)
+- [ ] **Click-to-WhatsApp ads** pair with the WhatsApp assistant (WHATSAPP-BOT.md):
+      it replies instantly, and those leads are tagged `[Meta Ads]` with the ad headline.
 - [ ] Create a Pixel in Events Manager. Set `NEXT_PUBLIC_META_PIXEL_ID`, then redeploy.
       The Pixel **loads only for visitors who click "Accept"** on the cookie banner.
 - [ ] Run campaigns under the **Credit** special ad category (required for loans).
@@ -125,7 +132,8 @@ Whether a lead becomes a loan depends mostly on response time.
 - The AI chat answers instantly, and the voice agent (if enabled, see
   [VOICE-AGENT.md](VOICE-AGENT.md)) calls within seconds.
 - A person should still call every lead within **5–10 minutes** during office hours.
-- Reply to WhatsApp messages within the hour.
+- Reply to WhatsApp messages within the hour, or let the WhatsApp assistant
+  answer instantly and hand over interested people (WHATSAPP-BOT.md).
 
 ## Weekly review (15 minutes)
 1. Count last week's lead emails by subject tag (channel).

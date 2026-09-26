@@ -35,6 +35,7 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | From your Supabase project (see `OPERATIONS.md`) | Lead database, consent records, do-not-call list |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | From @BotFather + your advisors' group | Instant new-lead alerts |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | From your Upstash Redis database | Site-wide rate limits + daily chat cap |
+| `WHATSAPP_BOT_ENABLED` + `WHATSAPP_*` | Meta WhatsApp Cloud API credentials (see `WHATSAPP-BOT.md`) | WhatsApp AI assistant + click-to-WhatsApp ads |
 
 > The site runs fine with the optional ones blank — forms still work (leads get
 > logged), no ads load, no analytics. Fill them in when ready.

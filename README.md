@@ -75,6 +75,10 @@ Every lead email names its source channel (campaign, partner `?ref=` code, refer
 
 Lead database + do-not-call list (Supabase), instant lead alerts (Telegram), site-wide rate limiting (Upstash), CI and tests — setup in [OPERATIONS.md](OPERATIONS.md). Run the tests with `npm test`.
 
+## Partners and WhatsApp
+
+Referral partners submit customers at `/partner-portal`; customers confirm consent on a one-time link before anyone contacts them ([OPERATIONS.md](OPERATIONS.md) §5). The WhatsApp assistant answers people who message your WhatsApp number and turns them into leads with consent ([WHATSAPP-BOT.md](WHATSAPP-BOT.md)).
+
 ## AI agents (both off by default)
 
 - **Chat assistant** — floating chat that answers loan questions from the site's own content via Sarvam and collects callback leads (`/api/chat`, `/api/chat-lead`). Enable with `CHAT_AGENT_ENABLED=true` + `SARVAM_API_KEY`. See [CHAT-AGENT.md](CHAT-AGENT.md).

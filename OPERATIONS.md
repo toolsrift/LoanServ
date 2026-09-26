@@ -100,7 +100,31 @@ extra packages. They cover:
 - the Supabase, Telegram, Upstash, Sarvam and Dograh clients, using a fake
   `fetch` (no real accounts or network)
 
-## 5. Partner referral links
+## 5. Partner portal (connectors submit leads)
+
+`/partner-portal` (hidden from search) lets referral partners submit customers
+who need a loan. This is how large DSAs scale through connectors, but with the
+customer's consent built in:
+
+1. **You issue a login:** run `node scripts/create-partner.mjs "Sri Sai Builders"`,
+   paste the printed SQL into Supabase → SQL Editor, and give the partner the
+   code + access key it prints. The key is shown once; only its hash is stored.
+2. **The partner signs in** and enters the customer's name, mobile and loan
+   need, and confirms the customer asked them to share it.
+3. **LoanServ contacts no one yet.** The partner gets a pre-written WhatsApp
+   message with a confirmation link and sends it from **their own phone**.
+4. **The customer opens the link**, sees their details (mobile masked), and
+   either ticks the same consent box as `/apply` (the referral becomes a lead
+   through the normal pipeline, tagged `[Partner: code]`) or chooses "don't
+   contact me" (their number goes on the do-not-call list).
+5. Links expire after 7 days. The partner sees each referral's status
+   (pending, confirmed, declined, expired) but never the full mobile number.
+
+To revoke a partner: `update public.partners set active = false where code = 'sri-sai-builders';`
+
+Needs only the lead database (Supabase); no other settings.
+
+## 6. Partner referral links
 
 `/tools/partner-links` is an internal page, hidden from search engines, that
 builds a tracked `?ref=` link and a printable QR code for a partner or a
