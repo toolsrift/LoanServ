@@ -1,3 +1,5 @@
+import { adsenseClient } from "./adsense";
+
 /**
  * Single source of truth for brand + business facts.
  * Used across metadata, JSON-LD, header/footer, and email routes.
@@ -37,7 +39,7 @@ export const site = {
   // reach the office. Falls back to the WhatsApp number when unset.
   phone:
     process.env.NEXT_PUBLIC_PHONE_NUMBER || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919000308525",
-  adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "",
+  adsenseClient: adsenseClient(),
   gaId: process.env.NEXT_PUBLIC_GA_ID || "",
   // Ad conversion tags — each loads only when set (see LEADS.md).
   googleAdsId: process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "", // "AW-123456789"

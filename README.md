@@ -90,7 +90,14 @@ Referral partners submit customers at `/partner-portal`; customers confirm conse
 
 ## Ads (AdSense)
 
-Monetisation runs purely on **AdSense Auto Ads** — there are no manual ad slots or placeholders in the layout. When `NEXT_PUBLIC_ADSENSE_CLIENT` is unset, no ad code loads at all. To enable ads: get AdSense approved, set `NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxx` (this loads the Auto Ads script site-wide via `AutoAds` in `layout.tsx`), turn Auto Ads on in the AdSense dashboard, and replace `public/ads.txt` with your real entry. Google handles ad placement automatically.
+Monetisation runs purely on **AdSense Auto Ads** — there are no manual ad slots or placeholders in the layout. When `NEXT_PUBLIC_ADSENSE_CLIENT` is unset (or still a placeholder), no ad code loads at all.
+
+Setting `NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-…` and redeploying does everything on the site side:
+- loads the Auto Ads script on every page (`AutoAds` in `layout.tsx`)
+- adds the `google-adsense-account` verification tag
+- serves `/ads.txt` with Google's seller line (`src/app/ads.txt/route.ts`)
+
+Ads never load on the lead forms (`/apply`, `/free-cibil-score`), the partner login, consent confirmations or internal tools (`NO_ADS_PATHS` in `src/lib/adsense.ts`). Then apply in AdSense and turn on Auto Ads; Google handles placement once approved.
 
 ## Monthly offers engine
 
@@ -114,7 +121,7 @@ Regenerate seed data: `node scripts/offers/generate-seed.mjs "August 2026"`. To 
 - [ ] Add `NEXT_PUBLIC_GA_ID` for Google Analytics.
 - [ ] Replace TODO placeholder partner logos with real assets (keep alt text).
 - [ ] Verify/replace indicative rates in `src/data/*` and `data/offers/*` before promoting figures.
-- [ ] Apply for AdSense; once approved set `NEXT_PUBLIC_ADSENSE_CLIENT`, update `ads.txt` and ad slot IDs.
+- [ ] Apply for AdSense and set `NEXT_PUBLIC_ADSENSE_CLIENT` (ads.txt and verification follow automatically).
 - [ ] (Optional) Configure a bureau API for live CIBIL scores.
 
 ## TODO markers

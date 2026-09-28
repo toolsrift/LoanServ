@@ -41,21 +41,3 @@ export function Analytics() {
     </>
   );
 }
-
-/**
- * Google AdSense Auto Ads loader — gated behind NEXT_PUBLIC_ADSENSE_CLIENT.
- * Loading this single script site-wide is all Auto Ads needs; Google decides
- * placement from the AdSense dashboard. Renders nothing until a client is set.
- */
-export function AutoAds() {
-  if (!site.adsenseClient) return null;
-  return (
-    <Script
-      id="adsense-auto-ads"
-      async
-      strategy="afterInteractive"
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${site.adsenseClient}`}
-      crossOrigin="anonymous"
-    />
-  );
-}

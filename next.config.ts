@@ -10,7 +10,8 @@ import type { NextConfig } from "next";
  */
 function buildCsp(): string {
   const gaEnabled = !!process.env.NEXT_PUBLIC_GA_ID;
-  const adsEnabled = !!process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  // Same check as adsenseClient() in src/lib/adsense.ts: placeholders don't count.
+  const adsEnabled = /^(?:ca-)?pub-\d{10,20}$/.test((process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "").trim());
   const googleAdsEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
   const metaPixelEnabled = !!process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -56,9 +57,30 @@ function buildCsp(): string {
     connectSrc.push("https://www.facebook.com", "https://connect.facebook.net");
   }
   if (adsEnabled) {
-    scriptSrc.push("https://pagead2.googlesyndication.com", "https://*.googlesyndication.com");
-    frameSrc.push("https://googleads.g.doubleclick.net", "https://*.googlesyndication.com");
-    connectSrc.push("https://pagead2.googlesyndication.com");
+    // AdSense Auto Ads: the loader, ad frames, Google's ad-quality checks
+    // (adtrafficquality.google) and the consent message for EEA visitors.
+    scriptSrc.push(
+      "https://pagead2.googlesyndication.com",
+      "https://*.googlesyndication.com",
+      "https://adservice.google.com",
+      "https://www.google.com",
+      "https://*.adtrafficquality.google",
+      "https://fundingchoicesmessages.google.com",
+    );
+    frameSrc.push(
+      "https://googleads.g.doubleclick.net",
+      "https://*.googlesyndication.com",
+      "https://www.google.com",
+      "https://*.adtrafficquality.google",
+    );
+    connectSrc.push(
+      "https://*.googlesyndication.com",
+      "https://*.doubleclick.net",
+      "https://adservice.google.com",
+      "https://*.google.com",
+      "https://*.adtrafficquality.google",
+      "https://fundingchoicesmessages.google.com",
+    );
   }
 
   return [
