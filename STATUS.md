@@ -45,7 +45,14 @@ Last updated: **28 Sep 2026**. Tick items off here as you finish them.
 - [ ] Business portfolio "Loan Serv" (ID 1267978663068309): fill in the **legal business name**, address and phone exactly as on your GST/registration.
 - [ ] Security Centre → **Business verification**: upload the documents yourself. Until verified, the bot can only reply to a small number of people a day.
 
-### 4. Quick checks
+### 4. AdSense (not applied yet)
+- [ ] Sign up at adsense.google.com, add site `loanserv.in`, copy the publisher ID (`ca-pub-…`).
+- [ ] Vercel: set `NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-…` → Redeploy. Check `https://loanserv.in/ads.txt` shows `google.com, pub-…, DIRECT, f08c47fec0942fa0`.
+- [ ] AdSense: verify the site with the **meta tag** method → Request review (a few days to 2 weeks).
+- [ ] Turn on Auto Ads for the site. Ads load on every page except the lead forms, partner login, consent confirmations and internal tools.
+- [ ] After approval: Brand safety → Blocking controls → block competing lenders/DSAs.
+
+### 5. Quick checks
 - [ ] GA4 → Admin → Events: star **`contact`** once it appears. First tap the WhatsApp button once on your phone.
 - [ ] Vercel: 4 toolsrift preview builds are still queued. Cancel them or let them run. If toolsrift previews keep blocking loan-serv deploys, turn off automatic preview builds for toolsrift.
 - [ ] Toolsrift previews that the Chrome agent cancelled rebuild on that PR's next push, or click **Redeploy** on them.
@@ -64,5 +71,4 @@ Last updated: **28 Sep 2026**. Tick items off here as you finish them.
 | **Legal review** | Have a lawyer review the privacy policy and consent wording (v2.0) before ads and voice go live. |
 | **Partner logins** | Send partner names; each gets a login from `scripts/create-partner.mjs` (OPERATIONS.md §5). |
 | **Ads** | Google Ads: financial services verification first, then `NEXT_PUBLIC_GOOGLE_ADS_ID` + label. Meta: Pixel + click-to-WhatsApp ads under the **Credit** category (LEADS.md §3). |
-| **AdSense** | After approval: `NEXT_PUBLIC_ADSENSE_CLIENT` and real `public/ads.txt`. |
 | **Site details** | Replace the placeholder Twitter handle in `src/lib/site.ts`. |

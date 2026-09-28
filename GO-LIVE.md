@@ -30,7 +30,7 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `NEXT_PUBLIC_PHONE_NUMBER` | Number for phone calls, digits only (optional; defaults to the WhatsApp number) | Call buttons + Google structured data |
 | `NEXT_PUBLIC_GSC_VERIFICATION` | Token from Search Console (Step 2) | GSC verification |
 | `NEXT_PUBLIC_GA_ID` | `G-XXXXXXX` (optional) | Google Analytics + lead events (see `LEADS.md`) |
-| `NEXT_PUBLIC_ADSENSE_CLIENT` | `ca-pub-XXXX` (only after AdSense approval) | Auto Ads |
+| `NEXT_PUBLIC_ADSENSE_CLIENT` | `ca-pub-…` from AdSense (set it when you apply) | Auto Ads, AdSense verification tag, `/ads.txt` |
 | `CHAT_AGENT_ENABLED` / `SARVAM_API_KEY` | `true` + your Sarvam key (optional — see `CHAT-AGENT.md` first) | AI chat assistant |
 | `NEXT_PUBLIC_GOOGLE_BUSINESS_URL` | Your Google Business Profile URL (optional) | Structured data `sameAs` |
 | `NEXT_PUBLIC_GOOGLE_ADS_ID` / `NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL` | `AW-…` + conversion label (only when running Google Ads) | Lead conversions in Google Ads |
@@ -109,7 +109,7 @@ Confirm it's valid:
 
 - [ ] Replace the placeholder Twitter handle in `src/lib/site.ts` (`@loanserv`).
 - [ ] Confirm the business address/phone in `src/lib/site.ts` is correct.
-- [ ] Replace `public/ads.txt` with your real line **after** AdSense approval.
+- [ ] Check `https://loanserv.in/ads.txt` shows your `pub-…` line after setting `NEXT_PUBLIC_ADSENSE_CLIENT` (it's generated automatically).
 - [ ] (Optional) Create a **Google Business Profile** for local visibility in
       Hyderabad / your service cities.
 

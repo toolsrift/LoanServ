@@ -6,7 +6,8 @@ import { SiteProviders } from "@/components/layout/SiteProviders";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
-import { Analytics, AutoAds } from "@/components/seo/Analytics";
+import { Analytics } from "@/components/seo/Analytics";
+import { AutoAds } from "@/components/seo/AutoAds";
 import { MetaPixel } from "@/components/seo/MetaPixel";
 import { isChatAgentEnabled } from "@/lib/chat-agent";
 
@@ -71,6 +72,9 @@ export const metadata: Metadata = {
     // TODO: add real verification tokens (behind env in Analytics too).
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || undefined,
   },
+  // AdSense site verification. The Auto Ads script is injected client-side, so
+  // Google's site check reads this tag instead.
+  other: site.adsenseClient ? { "google-adsense-account": site.adsenseClient } : undefined,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
