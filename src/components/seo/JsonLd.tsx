@@ -20,7 +20,7 @@ export function OrganizationJsonLd() {
     url: site.url,
     email: site.email,
     // Same number the site's call buttons use — must match the Google Business Profile.
-    telephone: `+91-${site.whatsapp.slice(-10)}`,
+    telephone: `+91-${site.phone.slice(-10)}`,
     description: site.description,
     areaServed: site.regions,
     address: {

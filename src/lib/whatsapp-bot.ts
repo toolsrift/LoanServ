@@ -26,10 +26,13 @@ const CONSENT_YES = "consent_yes";
 const CONSENT_NO = "consent_no";
 
 const STOP = /^\s*(stop|unsubscribe|opt ?out|don'?t (call|message) me)\s*[.!]*\s*$/i;
-const WANTS_CALL = /\b(call ?back|call me|(talk|speak) to (an? )?(advisor|agent|person|human|someone))\b/i;
+const WANTS_CALL =
+  /^\s*call\s*[.!]*\s*$|\b(call ?back|call me|(talk|speak) to (an? )?(advisor|agent|person|human|someone))\b/i;
 
+// WhatsApp's policy requires a clear path from an automated chat to a human.
 const DISCLOSURE =
-  "Hi! You're chatting with LoanServ's *AI assistant*. I can answer questions about loans, EMIs, eligibility and documents — in English, Hindi or Telugu. LoanServ is a DSA facilitator, not a lender; rates are indicative. Please don't share Aadhaar, PAN or bank details here. Reply STOP any time.";
+  "Hi! You're chatting with LoanServ's *AI assistant*. I can answer questions about loans, EMIs, eligibility and documents — in English, Hindi or Telugu. LoanServ is a DSA facilitator, not a lender; rates are indicative. Please don't share Aadhaar, PAN or bank details here.\n\n" +
+  `To talk to a person, reply *CALL* and an advisor will phone you, or call +91 ${site.phone.slice(-10)} (${site.hours}). Reply STOP any time.`;
 
 const CONSENT_TEXT =
   "Would you like a LoanServ advisor to call you?\n\nBy tapping *Yes, call me* you agree to be contacted by LoanServ about your loan requirement — by phone, WhatsApp or email, including an automated AI voice callback — and accept our Privacy Policy: " +

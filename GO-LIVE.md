@@ -25,6 +25,7 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Your email (e.g. Gmail App Password / Brevo) | Receiving apply & CIBIL leads by email |
 | `LEAD_TO_EMAIL` | Where leads should arrive | Lead delivery |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Your number, digits only, e.g. `9198XXXXXXXX` | Floating WhatsApp button |
+| `NEXT_PUBLIC_PHONE_NUMBER` | Number for phone calls, digits only (optional; defaults to the WhatsApp number) | Call buttons + Google structured data |
 | `NEXT_PUBLIC_GSC_VERIFICATION` | Token from Search Console (Step 2) | GSC verification |
 | `NEXT_PUBLIC_GA_ID` | `G-XXXXXXX` (optional) | Google Analytics + lead events (see `LEADS.md`) |
 | `NEXT_PUBLIC_ADSENSE_CLIENT` | `ca-pub-XXXX` (only after AdSense approval) | Auto Ads |

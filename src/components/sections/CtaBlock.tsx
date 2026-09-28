@@ -38,7 +38,7 @@ export function CtaBlock({
                 Apply for Loan <ArrowRight className="h-4 w-4" />
               </ApplyButton>
               <Button asChild variant="outline" size="lg" className="border-paper/25 text-paper hover:bg-paper/10">
-                <a href={`tel:+91${site.whatsapp.slice(-10)}`}>
+                <a href={`tel:+91${site.phone.slice(-10)}`}>
                   <Phone className="h-4 w-4" /> Talk to an advisor
                 </a>
               </Button>
