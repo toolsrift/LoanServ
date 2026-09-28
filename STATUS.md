@@ -17,11 +17,12 @@ Last updated: **28 Sep 2026**. Tick items off here as you finish them.
 | **Google Analytics** | Property 556078194, 14-month retention, `generate_lead` marked as a key event. |
 | **Partner tools** | `/partner-portal` (customer-confirmed referrals) and `/tools/partner-links` (tracked links + QR codes). |
 | **Content** | 3 new SEO posts (balance transfer Hyderabad, LAP Vijayawada/Vizag, doctor loans). |
+| **AdSense** | Account toolsrift@gmail.com, publisher `pub-4864313539537760`. Site verified and **review requested** (a few days, sometimes 2–4 weeks). `/ads.txt` and the verification tag are live. Auto Ads is on (in-page, anchor, side rail; vignette off). Ads load on every page except the lead forms, partner login, consent confirmations and internal tools, and show only after approval. |
 | **WhatsApp assistant (code)** | Deployed. Meta app "LoanServ Assistant" created; token, app secret and verify token saved in Vercel. **Not answering yet**: the webhook still needs saving (below). |
 
 ---
 
-## ⏳ Pending: tomorrow
+## ⏳ Pending: next
 
 ### 1. WhatsApp assistant (about 10 minutes, [WHATSAPP-BOT.md](WHATSAPP-BOT.md))
 - [ ] **Webhook:** Meta → LoanServ Assistant → WhatsApp → Configuration. Callback URL `https://loanserv.in/api/whatsapp`, type the verify token **yourself** (exactly as in Vercel) → **Verify and save**.
@@ -45,16 +46,15 @@ Last updated: **28 Sep 2026**. Tick items off here as you finish them.
 - [ ] Business portfolio "Loan Serv" (ID 1267978663068309): fill in the **legal business name**, address and phone exactly as on your GST/registration.
 - [ ] Security Centre → **Business verification**: upload the documents yourself. Until verified, the bot can only reply to a small number of people a day.
 
-### 4. AdSense (not applied yet)
-- [ ] Sign up at adsense.google.com, add site `loanserv.in`, copy the publisher ID (`ca-pub-…`).
-- [ ] Vercel: set `NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-…` → Redeploy. Check `https://loanserv.in/ads.txt` shows `google.com, pub-…, DIRECT, f08c47fec0942fa0`.
-- [ ] AdSense: verify the site with the **meta tag** method → Request review (a few days to 2 weeks).
-- [ ] Turn on Auto Ads for the site. Ads load on every page except the lead forms, partner login, consent confirmations and internal tools.
-- [ ] After approval: Brand safety → Blocking controls → block competing lenders/DSAs.
+### 4. AdSense: waiting for Google's review
+- [ ] In a day or two: AdSense → Sites → the ads.txt status for loanserv.in should change from "Not found" to **Authorized** (the file is already live).
+- [ ] When the site shows **Ready**: Brand safety → Blocking controls → block competing lenders/DSAs, so your pages don't advertise them.
+- [ ] Then check on your phone: ads appear on a loan or blog page, and **not** on Apply or the Free CIBIL check.
+- [ ] Optional: Privacy & messaging → European regulations message (Google's consent popup for EU/UK visitors). Without it, those few visitors see limited or no ads.
 
 ### 5. Quick checks
 - [ ] GA4 → Admin → Events: star **`contact`** once it appears. First tap the WhatsApp button once on your phone.
-- [ ] Vercel: 4 toolsrift preview builds are still queued. Cancel them or let them run. If toolsrift previews keep blocking loan-serv deploys, turn off automatic preview builds for toolsrift.
+- [ ] **Vercel deploy limit:** the free plan allows 100 deployments a day across all projects, and toolsrift preview builds used them up on 28 Sep. For **toolsrift** and **toolsrift-html**: Settings → Git → Ignored Build Step → **Only build production**. Also: change several Vercel settings first, then redeploy loan-serv once.
 - [ ] Toolsrift previews that the Chrome agent cancelled rebuild on that PR's next push, or click **Redeploy** on them.
 
 ---
