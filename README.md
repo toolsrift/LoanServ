@@ -63,6 +63,10 @@ Home · `/loans` + `/loans/[slug]` · `/balance-transfer` (+`[slug]`) · `/calcu
 
 **Add a legal / knowledge article** → add an `.mdx` file under `content/legal/` or `content/knowledge-center/{product-info,tutorials}/`.
 
+## Status
+
+What's live and what's still pending: [STATUS.md](STATUS.md).
+
 ## Leads & email
 
 `POST /api/apply` and `POST /api/cibil-lead` validate with Zod (client + server), apply a honeypot + basic rate-limit, then email the lead via Nodemailer to `LEAD_TO_EMAIL`. No Aadhaar/PAN/bank numbers are collected in the apply form; the CIBIL form treats PAN/DOB as sensitive (HTTPS only, PAN masked in email, not persisted). If SMTP is unset, forms still succeed and log a non-PII warning.

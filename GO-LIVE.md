@@ -15,6 +15,8 @@ Google cannot verify or crawl `localhost` — the site has to be on the real dom
 2. Import the repo on **Vercel** or **Netlify** (both free for this site).
 3. Point the domain **loanserv.in** at the host (add it in the host's Domains
    settings; they give you DNS records to add at your domain registrar).
+   Make **loanserv.in** the primary domain and have `www` redirect to it, so
+   the address matches `NEXT_PUBLIC_SITE_URL`, canonicals and the sitemap.
 4. Set the environment variables below in the host's dashboard, then deploy.
 
 ### Environment variables to set (copy from `.env.example`)

@@ -72,7 +72,16 @@ WHATSAPP_VERIFY_TOKEN=<any long random string you choose>
    - Callback URL: `https://loanserv.in/api/whatsapp`
    - Verify token: the same `WHATSAPP_VERIFY_TOKEN`
    - Click **Verify and save**, then **subscribe to the `messages` field**.
-8. **Point the site's WhatsApp button at the bot, keep calls on your phone:**
+   - Meta saves nothing until verification succeeds. If it fails, the token
+     doesn't match Vercel exactly (watch for spaces); fix it and redeploy.
+   - Use `https://loanserv.in`, not `www`: `www` redirects, and webhooks
+     don't reliably follow redirects.
+8. **Publish the app:** App settings → Basic → Privacy Policy URL
+   `https://loanserv.in/legal/privacy-policy`, Terms URL
+   `https://loanserv.in/legal/terms`, data deletion URL = the privacy policy.
+   Then set App Mode to **Live**. While testing on Meta's test number, add
+   your phone under API Setup → "To" (up to 5 numbers).
+9. **Point the site's WhatsApp button at the bot, keep calls on your phone:**
    set `NEXT_PUBLIC_WHATSAPP_NUMBER` to the bot's number, and
    `NEXT_PUBLIC_PHONE_NUMBER` to the number that should receive phone calls
    (both digits only, with 91, e.g. `919000308525`). Then redeploy. The call
