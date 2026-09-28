@@ -72,10 +72,12 @@ WHATSAPP_VERIFY_TOKEN=<any long random string you choose>
    - Callback URL: `https://loanserv.in/api/whatsapp`
    - Verify token: the same `WHATSAPP_VERIFY_TOKEN`
    - Click **Verify and save**, then **subscribe to the `messages` field**.
-8. **Point the site's WhatsApp button at the bot:** set
-   `NEXT_PUBLIC_WHATSAPP_NUMBER` to the new number (digits only, with 91) and
-   redeploy. The phone links on the site use this number too. If calls should
-   still reach your old number, tell me and I'll split the two.
+8. **Point the site's WhatsApp button at the bot, keep calls on your phone:**
+   set `NEXT_PUBLIC_WHATSAPP_NUMBER` to the bot's number, and
+   `NEXT_PUBLIC_PHONE_NUMBER` to the number that should receive phone calls
+   (both digits only, with 91, e.g. `919000308525`). Then redeploy. The call
+   buttons, "Talk to an advisor" and the Google structured data use
+   `NEXT_PUBLIC_PHONE_NUMBER`; the WhatsApp button uses the bot.
 
 ## Test
 

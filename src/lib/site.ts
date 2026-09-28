@@ -32,6 +32,11 @@ export const site = {
     "LoanServ is a loan facilitator / DSA and not a lender or bank. Loan approval and terms are at the sole discretion of partner banks/NBFCs.",
   // Read at build/runtime from env; falls back to the real business number.
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919000308525",
+  // Number for phone calls (call buttons, structured data). Separate from WhatsApp
+  // so the WhatsApp assistant can use its own Cloud API number while calls still
+  // reach the office. Falls back to the WhatsApp number when unset.
+  phone:
+    process.env.NEXT_PUBLIC_PHONE_NUMBER || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919000308525",
   adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "",
   gaId: process.env.NEXT_PUBLIC_GA_ID || "",
   // Ad conversion tags — each loads only when set (see LEADS.md).

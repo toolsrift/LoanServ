@@ -173,7 +173,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <a
-            href={`tel:+91${site.whatsapp.slice(-10)}`}
+            href={`tel:+91${site.phone.slice(-10)}`}
             className="hidden items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-slate hover:text-evergreen xl:flex"
           >
             <Phone className="h-4 w-4" /> Call

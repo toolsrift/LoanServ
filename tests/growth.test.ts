@@ -181,6 +181,7 @@ test("first message gets the AI disclosure, then an answer", async () => {
   await bot.handleInbound(msg({ text: "What documents for a home loan?" }));
   const texts = sent.map((s) => (s.text as { body: string } | undefined)?.body || "");
   assert.match(texts[0], /AI assistant/);
+  assert.match(texts[0], /To talk to a person, reply \*CALL\*/, "human escalation path");
   assert.match(texts[1], /\*KYC\*/);
   assert.match(texts[1], /https:\/\/loanserv\.in\/loans\/home-loan/);
   assert.equal((session!.messages as unknown[]).length, 2);
@@ -192,6 +193,11 @@ test("duplicate deliveries are ignored", async () => {
   const n = sent.length;
   await bot.handleInbound(m);
   assert.equal(sent.length, n);
+});
+
+test("replying CALL shows consent buttons too", async () => {
+  await bot.handleInbound(msg({ text: "CALL" }));
+  assert.ok(sent.some((s) => s.type === "interactive"));
 });
 
 test("asking for a call shows consent buttons without calling the model", async () => {
