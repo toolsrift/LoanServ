@@ -7,6 +7,7 @@ import { balanceTransfers } from "@/data/balance-transfer";
 import { listDocs } from "@/lib/content";
 import { getAllOffers, offerLenderSlugs } from "@/lib/offers";
 import { loanCityParams } from "@/lib/loan-city";
+import { festiveSeasonHasEnded } from "@/data/festive-offers";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = site.url;
@@ -37,6 +38,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/balance-transfer",
     "/locations",
     "/offers",
+    "/offers/festive-loan-offers-2026",
     "/blog",
     "/news",
     "/about",
@@ -50,7 +52,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/knowledge-center/tutorials",
     "/knowledge-center/glossary",
     "/knowledge-center/videos",
-  ];
+  ]
+    // The festive page is seasonal: drop it once the campaign window has closed.
+    .filter((p) => p !== "/offers/festive-loan-offers-2026" || !festiveSeasonHasEnded());
 
   const legalDocs = listDocs("legal");
   const productInfo = listDocs("knowledge-center/product-info");

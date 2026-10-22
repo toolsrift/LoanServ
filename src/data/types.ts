@@ -48,6 +48,8 @@ export type CalculatorKind =
   | "emi"
   | "eligibility"
   | "balance-transfer"
+  | "rate-change"
+  | "debt-consolidation"
   | "prepayment"
   | "lap"
   | "sip"

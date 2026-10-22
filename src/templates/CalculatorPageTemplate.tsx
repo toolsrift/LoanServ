@@ -9,6 +9,8 @@ import { EmiCalculator } from "@/components/calculators/EmiCalculator";
 import {
   EligibilityCalculator,
   BalanceTransferCalculator,
+  RateChangeCalculator,
+  DebtConsolidationCalculator,
   PrepaymentCalculator,
   InvestmentCalculator,
   IncomeTaxCalculator,
@@ -28,6 +30,10 @@ function CalculatorWidget({ meta }: { meta: CalculatorMeta }) {
       return <EligibilityCalculator presetCategory={meta.presetCategory} />;
     case "balance-transfer":
       return <BalanceTransferCalculator />;
+    case "rate-change":
+      return <RateChangeCalculator />;
+    case "debt-consolidation":
+      return <DebtConsolidationCalculator />;
     case "prepayment":
       return <PrepaymentCalculator />;
     case "income-tax":

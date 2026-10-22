@@ -320,6 +320,88 @@ export const calculators: CalculatorMeta[] = [
     group: "Loan EMI",
   },
   {
+    slug: "rate-hike-emi-impact",
+    kind: "rate-change",
+    name: "Rate Hike EMI Impact Calculator",
+    metaTitle: "Repo Rate Hike EMI Calculator - How Much Will My EMI Rise?",
+    metaDescription:
+      "See how a repo rate hike or cut changes your loan. Enter your balance, rate and the change in basis points to compare a higher EMI against a longer tenure.",
+    tagline: "When rates move, see what changes for you: your EMI or your tenure.",
+    presetCategory: "Home",
+    intro: [
+      "When the RBI changes the repo rate, a floating-rate loan linked to it usually changes at its next reset date. Your bank then either raises your EMI or keeps the EMI the same and extends your tenure. Many banks extend the tenure by default. That keeps the monthly payment the same, but you can end up paying a lot more interest over the life of the loan. This calculator shows both options side by side, so you can pick one deliberately instead of accepting the default.",
+      "Enter your outstanding balance, current interest rate, remaining tenure and the rate change in basis points (100 bps = 1%). A 25 bps repo hike usually raises a repo-linked loan's rate by 25 bps. The calculator uses the standard reducing-balance EMI formula. For the same-EMI option, it works out the new number of months needed to close the loan. If the higher rate pushes the monthly interest above your EMI, it warns you that the loan would never close at that EMI.",
+      "If a hike leaves your rate well above what lenders now offer new borrowers, a balance transfer may be cheaper than either option. Compare it with the balance transfer savings calculator, and remember to include the processing fee.",
+    ],
+    notes: [
+      "Check your loan's benchmark (repo-linked, MCLR or base rate) and reset date in your sanction letter or loan statement.",
+      "If you can afford it, choosing a higher EMI usually saves far more interest than a longer tenure.",
+      "MCLR-linked loans only change at the reset date, and MCLR doesn't always move with the repo rate.",
+      "Results are estimates. Your bank's actual reset may differ because of spread changes or the exact reset timing.",
+    ],
+    faqs: [
+      {
+        q: "How much does a 25 bps repo hike add to my EMI?",
+        a: "It depends on your balance and remaining tenure. On a ₹40 lakh loan at 8.5% with 20 years left, a 25 bps rise adds roughly ₹600–650 a month if the tenure stays the same. Enter your own figures above to see your number.",
+      },
+      {
+        q: "Will my bank raise my EMI or my tenure?",
+        a: "Many banks extend the tenure by default and keep the EMI the same. You can usually ask your bank to raise the EMI instead, which saves interest. Check your loan agreement or ask your bank which options it offers at reset.",
+      },
+      {
+        q: "When does a repo rate change reach my loan?",
+        a: "For repo-linked loans, at the next reset date in your loan agreement, often quarterly. MCLR-linked loans reset less often, and the MCLR may not change by the same amount.",
+      },
+      {
+        q: "Can a balance transfer help when rates rise?",
+        a: "Yes, if another lender offers a meaningfully lower rate after fees. Compare the interest you would save against processing and legal charges before you switch.",
+      },
+    ],
+    related: ["balance-transfer-savings", "prepayment", "home-loan-emi", "emi-calculator", "debt-consolidation"],
+    group: "Loan EMI",
+  },
+  {
+    slug: "debt-consolidation",
+    kind: "debt-consolidation",
+    name: "Debt Consolidation Calculator",
+    metaTitle: "Debt Consolidation Calculator India - Combine Loans & Cards",
+    metaDescription:
+      "Combine credit card dues and loans into one personal loan. Compare your current EMIs and interest with a single consolidation loan, including processing fees.",
+    tagline: "Add up your EMIs and card dues, then see if one loan costs you less.",
+    presetCategory: "Personal",
+    intro: [
+      "Debt consolidation means taking one new loan, usually a personal loan, to pay off several existing debts such as credit card balances, consumer loans and other personal loans. You then have one EMI, one due date and, ideally, a lower interest rate. Credit card debt can cost 36–42% a year if you only pay the minimum, so moving it to a personal loan can cut your interest sharply. Consolidation is not always cheaper, though, and this calculator helps you check before you apply.",
+      "Enter up to five debts with their outstanding balance, annual interest rate and the amount you currently pay each month. The calculator works out how long each debt takes to clear at that payment and how much interest you would pay. It then compares that with one consolidation loan at the rate, tenure and processing fee you enter. If a payment doesn't cover the monthly interest, as with minimum payments on a card, the calculator flags it because that debt would never be paid off.",
+      "A lower monthly payment isn't the same as a saving. Stretching the debt over a longer tenure can lower the EMI but raise the total interest. Compare the net saving figure, and close or cap the cards you pay off so the balances don't build up again.",
+    ],
+    notes: [
+      "Use the rate a lender actually offers you, not the advertised starting rate. Your CIBIL score largely decides it.",
+      "Include the processing fee (often 1–3% plus GST) and any foreclosure charges on the loans you're closing.",
+      "Pick the shortest tenure whose EMI you can comfortably afford.",
+      "After consolidating, avoid running up new card balances, or you will end up with more debt than before.",
+    ],
+    faqs: [
+      {
+        q: "Is a personal loan good for debt consolidation?",
+        a: "It often is when you have high-interest debt like credit card balances, because personal loan rates are usually much lower than card interest. It only saves money if the new rate, fees and tenure give a lower total cost, which is what this calculator compares.",
+      },
+      {
+        q: "Does debt consolidation affect my CIBIL score?",
+        a: "Applying adds a hard enquiry, which may dip your score slightly. Paying off cards lowers your credit utilisation, and paying one EMI on time builds a good history. Over time, many borrowers see their score improve.",
+      },
+      {
+        q: "Can I consolidate debts with a balance transfer instead?",
+        a: "You can move an existing personal or home loan to a cheaper lender with a balance transfer, sometimes with a top-up. A top-up can then be used to clear smaller, costlier debts.",
+      },
+      {
+        q: "Is LoanServ a lender?",
+        a: "No. LoanServ is a loan facilitator (DSA). We compare consolidation offers from partner banks and NBFCs, and the lender makes the final decision.",
+      },
+    ],
+    related: ["balance-transfer-savings", "personal-loan-emi", "personal-loan-eligibility", "prepayment", "rate-hike-emi-impact"],
+    group: "Loan EMI",
+  },
+  {
     slug: "prepayment",
     kind: "prepayment",
     name: "Loan Prepayment Calculator",

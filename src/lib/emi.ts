@@ -92,3 +92,45 @@ export function balanceTransferSavings(
     netSavings: Math.round(netSavings),
   };
 }
+
+/**
+ * Months needed to repay `principal` at `annualRate` with a fixed `emi`.
+ * Returns Infinity when the EMI does not cover the monthly interest (the loan never closes).
+ *   n = −ln(1 − P·r/E) / ln(1 + r)
+ */
+export function tenureForEmi(principal: number, annualRate: number, emi: number): number {
+  const p = Math.max(0, principal);
+  if (p === 0) return 0;
+  if (emi <= 0) return Infinity;
+  const r = annualRate / 12 / 100;
+  if (r === 0) return Math.ceil(p / emi);
+  const x = 1 - (p * r) / emi;
+  if (x <= 0) return Infinity;
+  return Math.ceil(-Math.log(x) / Math.log(1 + r));
+}
+
+export interface PayoffResult {
+  months: number;
+  totalInterest: number;
+  /** false when the EMI never covers the interest */
+  closes: boolean;
+}
+
+/** Month-by-month payoff of a balance at a fixed EMI (capped at 600 months). */
+export function payoff(balance: number, annualRate: number, emi: number): PayoffResult {
+  const r = annualRate / 12 / 100;
+  let b = Math.max(0, balance);
+  let interest = 0;
+  let months = 0;
+  // Ignore rounding dust smaller than ₹1 per ₹1,000 of EMI so a rounded EMI doesn't add a phantom month.
+  const dust = Math.max(1, emi / 1000);
+  while (b > dust && months < 600) {
+    const i = b * r;
+    if (emi <= i) return { months: Infinity, totalInterest: Infinity, closes: false };
+    interest += i;
+    b = Math.max(0, b + i - emi); // final instalment is only what is owed
+    months++;
+  }
+  if (b > dust) return { months: Infinity, totalInterest: Infinity, closes: false };
+  return { months, totalInterest: Math.round(interest), closes: true };
+}

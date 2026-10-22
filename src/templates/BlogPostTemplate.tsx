@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, CalendarDays, ArrowLeft } from "lucide-react";
+import { Clock, CalendarDays, RefreshCw, ArrowLeft } from "lucide-react";
 import { Container, Badge } from "@/components/ui/primitives";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Mdx } from "@/components/content/Mdx";
@@ -31,6 +31,11 @@ export function BlogPostTemplate({ doc, related }: { doc: Doc; related: Doc[] })
             <span className="flex items-center gap-1.5">
               <CalendarDays className="h-4 w-4" /> {formatDate(fm.date)}
             </span>
+            {fm.updated && fm.updated !== fm.date && (
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="h-4 w-4" /> Updated {formatDate(fm.updated)}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" /> {doc.readingTime} min read
             </span>

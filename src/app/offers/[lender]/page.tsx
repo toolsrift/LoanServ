@@ -13,6 +13,8 @@ import { FinancialProductJsonLd } from "@/components/seo/JsonLd";
 import { buildMetadata } from "@/lib/seo";
 import { getLenderOffers, getOffersMeta, offerLenderSlugs } from "@/lib/offers";
 import { getLender } from "@/data/lenders";
+import { getBenchmarkTables } from "@/data/benchmark-rates";
+import { BenchmarkRatesTable } from "@/components/offers/BenchmarkRatesTable";
 
 export function generateStaticParams() {
   return offerLenderSlugs().map((lender) => ({ lender }));
@@ -24,7 +26,10 @@ export async function generateMetadata({ params }: { params: Promise<{ lender: s
   const { month } = getOffersMeta();
   if (!data) return {};
   return buildMetadata({
-    title: `${data.name} Loan Interest Rates & Offers — ${month}`.slice(0, 65),
+    title: (getBenchmarkTables(lender).length > 0
+      ? `${data.name} MCLR & Loan Interest Rates — ${month}`
+      : `${data.name} Loan Interest Rates & Offers — ${month}`
+    ).slice(0, 65),
     description: `Indicative ${data.name} interest rates, processing fees, tenure and offers for ${month}. Compare ${data.name} loans and apply through LoanServ.`.slice(0, 160),
     path: `/offers/${lender}`,
   });
@@ -36,6 +41,7 @@ export default async function LenderOffersPage({ params }: { params: Promise<{ l
   const offers = getLenderOffers(lender);
   const { month } = getOffersMeta();
   if (!data || offers.length === 0) notFound();
+  const benchmarks = getBenchmarkTables(lender);
 
   return (
     <>
@@ -106,8 +112,17 @@ export default async function LenderOffersPage({ params }: { params: Promise<{ l
         </Container>
       </section>
 
-      <Container>
-      </Container>
+      {benchmarks.map((t) => (
+        <section key={`${t.benchmark}-${t.effectiveFrom}`} className="pb-10">
+          <Container>
+            <Eyebrow>Benchmark rates</Eyebrow>
+            <h2 className="mb-4 mt-3 text-display-sm">
+              {data.name} {t.benchmark} — {t.effectiveLabel}
+            </h2>
+            <BenchmarkRatesTable table={t} lenderName={data.name} />
+          </Container>
+        </section>
+      ))}
 
       <section className="pb-12">
         <Container>

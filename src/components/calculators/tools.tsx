@@ -7,7 +7,7 @@ import { Input, NativeSelect } from "@/components/ui/field";
 import { ApplyButton } from "@/components/apply/ApplyButton";
 import { useCountUp } from "./useCountUp";
 import { formatINR, formatINRCompact } from "@/lib/format";
-import { calculateEmi } from "@/lib/emi";
+import { calculateEmi, tenureForEmi, payoff } from "@/lib/emi";
 import {
   sipFutureValue,
   lumpsumFutureValue,
@@ -487,6 +487,181 @@ export function RetirementCalculator() {
           { label: "Total invested", value: formatINR(res.invested), dot: "var(--evergreen)" },
           { label: "Est. returns", value: formatINR(res.gains), dot: "var(--mint)" },
           { label: "Corpus at retirement", value: formatINR(res.futureValue), strong: true },
+        ]}
+      />
+    </Shell>
+  );
+}
+
+/* ---------- Rate change (repo hike / cut) EMI impact ---------- */
+
+function fmtMonths(m: number) {
+  if (!Number.isFinite(m)) return "Never closes";
+  const y = Math.floor(m / 12);
+  const mo = m % 12;
+  return [y ? `${y} yr` : "", mo ? `${mo} mo` : ""].filter(Boolean).join(" ") || "0 mo";
+}
+
+export function RateChangeCalculator() {
+  const [outstanding, setOutstanding] = React.useState(4000000);
+  const [rate, setRate] = React.useState(8.5);
+  const [change, setChange] = React.useState(25);
+  const [months, setMonths] = React.useState(240);
+
+  const newRate = Math.max(0, rate + change / 100);
+  const before = calculateEmi(outstanding, rate, months);
+  // Option A: keep tenure, EMI changes
+  const after = calculateEmi(outstanding, newRate, months);
+  // Option B: keep EMI, tenure changes (most banks' default)
+  const newTenure = tenureForEmi(outstanding, newRate, before.emi);
+  const tenureInterest = Number.isFinite(newTenure)
+    ? payoff(outstanding, newRate, before.emi).totalInterest
+    : Infinity;
+
+  const emiDelta = after.emi - before.emi;
+  const interestDeltaA = after.totalInterest - before.totalInterest;
+  const interestDeltaB = Number.isFinite(tenureInterest) ? tenureInterest - before.totalInterest : Infinity;
+  const sign = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "");
+
+  return (
+    <Shell>
+      <Controls>
+        <SliderField label="Outstanding loan (₹)" value={outstanding} set={setOutstanding} min={100000} max={20000000} step={50000} fmt={formatINRCompact} />
+        <SliderField label="Current interest rate (% p.a.)" value={rate} set={setRate} min={6} max={20} step={0.05} decimals suffix="%" />
+        <SliderField label="Rate change (basis points)" value={change} set={setChange} min={-200} max={200} step={5} suffix="bps" />
+        <SliderField label="Remaining tenure (months)" value={months} set={setMonths} min={12} max={360} step={6} />
+        <p className="mt-2 text-xs text-muted-foreground">
+          100 basis points = 1%. A 25 bps repo hike usually means +25 in this box, applied at your loan&apos;s reset date.
+        </p>
+      </Controls>
+      <ResultPanel
+        headline={emiDelta >= 0 ? "Your EMI could rise by" : "Your EMI could fall by"}
+        headlineValue={Math.abs(emiDelta)}
+        cta="Check if a balance transfer saves more"
+        presetCategory="Home"
+        rows={[
+          { label: "New rate", value: `${newRate.toFixed(2)}% p.a.` },
+          { label: "EMI now → if tenure stays", value: `${formatINR(before.emi)} → ${formatINR(after.emi)}` },
+          { label: "Extra interest (EMI changes)", value: `${sign(interestDeltaA)}${formatINR(Math.abs(interestDeltaA))}` },
+          { label: "Tenure if EMI stays", value: `${fmtMonths(months)} → ${fmtMonths(newTenure)}` },
+          {
+            label: "Extra interest (tenure changes)",
+            value: Number.isFinite(interestDeltaB) ? `${sign(interestDeltaB)}${formatINR(Math.abs(interestDeltaB))}` : "EMI too low",
+            strong: true,
+          },
+        ]}
+      />
+    </Shell>
+  );
+}
+
+/* ---------- Debt consolidation ---------- */
+
+interface DebtRow {
+  id: number;
+  name: string;
+  balance: number;
+  rate: number;
+  emi: number;
+}
+
+const DEFAULT_DEBTS: DebtRow[] = [
+  { id: 1, name: "Credit card", balance: 150000, rate: 42, emi: 7500 },
+  { id: 2, name: "Personal loan", balance: 300000, rate: 16, emi: 10600 },
+  { id: 3, name: "Consumer loan", balance: 60000, rate: 24, emi: 3200 },
+];
+
+function num(v: string) {
+  const n = parseFloat(v.replace(/,/g, ""));
+  return Number.isNaN(n) ? 0 : Math.max(0, n);
+}
+
+export function DebtConsolidationCalculator() {
+  const [debts, setDebts] = React.useState<DebtRow[]>(DEFAULT_DEBTS);
+  const [newRate, setNewRate] = React.useState(12);
+  const [tenure, setTenure] = React.useState(48);
+  const [fee, setFee] = React.useState(1.5);
+
+  const update = (id: number, key: keyof Omit<DebtRow, "id">, value: string) =>
+    setDebts((ds) => ds.map((d) => (d.id === id ? { ...d, [key]: key === "name" ? value : num(value) } : d)));
+  const add = () =>
+    setDebts((ds) => (ds.length >= 5 ? ds : [...ds, { id: Math.max(0, ...ds.map((d) => d.id)) + 1, name: `Debt ${ds.length + 1}`, balance: 50000, rate: 18, emi: 2500 }]));
+  const remove = (id: number) => setDebts((ds) => (ds.length <= 1 ? ds : ds.filter((d) => d.id !== id)));
+
+  const active = debts.filter((d) => d.balance > 0);
+  const totalBalance = active.reduce((a, d) => a + d.balance, 0);
+  const currentEmi = active.reduce((a, d) => a + d.emi, 0);
+  const payoffs = active.map((d) => payoff(d.balance, d.rate, d.emi));
+  const stuck = active.filter((_, i) => !payoffs[i].closes);
+  const currentInterest = payoffs.reduce((a, p) => a + (p.closes ? p.totalInterest : 0), 0);
+  const longest = payoffs.reduce((a, p) => Math.max(a, p.closes ? p.months : 0), 0);
+
+  const processingFee = (totalBalance * fee) / 100;
+  const consolidated = calculateEmi(totalBalance, newRate, tenure);
+  const newCost = consolidated.totalInterest + processingFee;
+  const saving = currentInterest - newCost;
+
+  const cell = "num h-9 w-full text-right text-sm";
+
+  return (
+    <Shell>
+      <Controls>
+        <p className="mb-3 text-sm font-medium text-slate">Your current debts (up to 5)</p>
+        <div className="mb-2 hidden grid-cols-[1.4fr_1fr_0.7fr_0.9fr_auto] gap-2 text-[11px] uppercase tracking-wide text-muted-foreground sm:grid">
+          <span>Debt</span>
+          <span className="text-right">Balance ₹</span>
+          <span className="text-right">Rate %</span>
+          <span className="text-right">EMI ₹</span>
+          <span className="w-6" />
+        </div>
+        <div className="space-y-3">
+          {debts.map((d) => (
+            <div key={d.id} className="grid grid-cols-2 gap-2 sm:grid-cols-[1.4fr_1fr_0.7fr_0.9fr_auto]">
+              <Input value={d.name} onChange={(e) => update(d.id, "name", e.target.value)} className="col-span-2 h-9 text-sm sm:col-span-1" aria-label="Debt name" />
+              <Input value={String(d.balance)} onChange={(e) => update(d.id, "balance", e.target.value)} className={cell} inputMode="numeric" aria-label={`${d.name} balance`} />
+              <Input value={String(d.rate)} onChange={(e) => update(d.id, "rate", e.target.value)} className={cell} inputMode="decimal" aria-label={`${d.name} interest rate`} />
+              <Input value={String(d.emi)} onChange={(e) => update(d.id, "emi", e.target.value)} className={cell} inputMode="numeric" aria-label={`${d.name} monthly payment`} />
+              <button
+                type="button"
+                onClick={() => remove(d.id)}
+                disabled={debts.length <= 1}
+                className="h-9 w-6 text-lg text-muted-foreground hover:text-ink disabled:opacity-30"
+                aria-label={`Remove ${d.name}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        {debts.length < 5 && (
+          <button type="button" onClick={add} className="mt-3 text-sm font-medium text-evergreen underline underline-offset-2">
+            + Add another debt
+          </button>
+        )}
+        <div className="mt-6 border-t border-sand pt-6">
+          <SliderField label="New consolidation loan rate (% p.a.)" value={newRate} set={setNewRate} min={8} max={28} step={0.1} decimals suffix="%" />
+          <SliderField label="New loan tenure (months)" value={tenure} set={setTenure} min={12} max={84} step={6} />
+          <SliderField label="Processing fee (%)" value={fee} set={setFee} min={0} max={4} step={0.1} decimals suffix="%" />
+        </div>
+        {stuck.length > 0 && (
+          <p className="mt-3 rounded-lg border border-sand bg-muted p-3 text-xs text-ink">
+            The payment on {stuck.map((d) => d.name).join(", ")} doesn&apos;t cover its monthly interest, so that debt never
+            gets paid off. Its interest is left out of the comparison, so your real saving is likely higher.
+          </p>
+        )}
+      </Controls>
+      <ResultPanel
+        headline={saving >= 0 ? "You could save in interest" : "Consolidating would cost more by"}
+        headlineValue={Math.abs(Math.round(saving))}
+        presetCategory="Personal"
+        cta="Get debt consolidation offers"
+        rows={[
+          { label: "Total debt to consolidate", value: formatINR(totalBalance) },
+          { label: "Monthly payments now → after", value: `${formatINR(currentEmi)} → ${formatINR(consolidated.emi)}`, dot: "var(--mint)" },
+          { label: "Debt-free in (now → after)", value: `${fmtMonths(longest)} → ${fmtMonths(tenure)}` },
+          { label: "Interest if you continue", value: formatINR(currentInterest) },
+          { label: "New loan interest + fee", value: formatINR(Math.round(newCost)) },
+          { label: "Net saving", value: `${saving < 0 ? "−" : ""}${formatINR(Math.abs(Math.round(saving)))}`, strong: true },
         ]}
       />
     </Shell>

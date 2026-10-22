@@ -1,4 +1,5 @@
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +40,7 @@ const components = {
 export function Mdx({ source, className }: { source: string; className?: string }) {
   return (
     <div className={cn("prose-loanserv", className)}>
-      <MDXRemote source={source} components={components} />
+      <MDXRemote source={source} components={components} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
     </div>
   );
 }

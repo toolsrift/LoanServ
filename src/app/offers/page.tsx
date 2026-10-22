@@ -47,8 +47,20 @@ export default function OffersHub() {
         </Container>
       </section>
 
-      <Container>
-      </Container>
+      <section className="pb-10">
+        <Container>
+          <Link
+            href="/offers/festive-loan-offers-2026"
+            className="group flex items-center justify-between gap-3 rounded-2xl border border-mint/40 bg-mint/5 p-5 transition-all hover:-translate-y-0.5 hover:shadow-lift"
+          >
+            <div>
+              <p className="font-display text-lg text-ink group-hover:text-evergreen">Festive loan offers 2026</p>
+              <p className="text-sm text-muted-foreground">Processing fee waivers and rate concessions from PNB, Kotak, Yes Bank, SBI and HDFC Bank, compared.</p>
+            </div>
+            <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-evergreen" />
+          </Link>
+        </Container>
+      </section>
 
       <section className="pb-12">
         <Container>
